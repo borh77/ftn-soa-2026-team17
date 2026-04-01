@@ -1,0 +1,39 @@
+services:
+  stakeholders-db:
+    image: postgres:16
+    container_name: stakeholders-db
+    environment:
+      POSTGRES_DB: stakeholders_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - stakeholders_postgres_data:/var/lib/postgresql/data
+    networks:
+      - soa-network
+
+  stakeholders-service:
+    build:
+      context: ./stakeholders-service
+      dockerfile: Dockerfile
+    container_name: stakeholders-service
+    depends_on:
+      - stakeholders-db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://stakeholders-db:5432/stakeholders_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: pass
+      JWT_SECRET: my-super-secret-jwt-key-2026-test
+      JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+    networks:
+      - soa-network
+
+volumes:
+  stakeholders_postgres_data:
+
+networks:
+  soa-network:
+    driver: bridge

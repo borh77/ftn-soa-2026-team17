@@ -68,6 +68,13 @@ public class AuthService {
             throw new BadRequestException("User is blocked");
         }
 
-        return jwtService.generateToken(user.getUsername());
+        System.out.println("STEP 1: user found and password matched");
+        System.out.println("Username: " + user.getUsername());
+        System.out.println("Role: " + user.getRole());
+
+        String token = jwtService.generateToken(user);
+
+        System.out.println("STEP 2: token generated successfully");
+        return token;
     }
 }
