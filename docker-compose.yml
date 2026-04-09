@@ -1,5 +1,6 @@
 services:
   stakeholders-db:
+    platform: linux/arm64 # ovo mozda mora da se promeni za windows
     image: postgres:16
     container_name: stakeholders-db
     environment:

@@ -36,4 +36,19 @@ public class AppUser {
     @Builder.Default
     @Column(nullable = false)
     private boolean isBlocked = false;
+
+    @Column(nullable = true) 
+    private String firstName;
+
+    @Column(nullable = true)
+    private String lastName;
+
+    @Column(nullable = true)
+    private String profileImage;
+
+    @Column(length = 2000, nullable = true)
+    private String biography;
+
+    @Column(nullable = true)
+    private String motto;
 }

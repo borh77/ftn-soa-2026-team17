@@ -43,6 +43,11 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
                 .isBlocked(false)
+                .firstName("")
+                .lastName("")
+                .profileImage("")
+                .biography("")
+                .motto("")
                 .build();
 
         AppUser savedUser = appUserRepository.save(appUser);
