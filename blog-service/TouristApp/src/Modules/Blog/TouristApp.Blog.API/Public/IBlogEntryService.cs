@@ -7,4 +7,8 @@ public interface IBlogEntryService
 {
     BlogEntryDto Create(BlogEntryDto blogDto);
     PagedResult<BlogEntryDto> GetPaged(int page, int pageSize);
+
+    CommentDto AddComment(long blogId, long authorId, string text);
+    CommentDto UpdateComment(long blogId, long commentId, long requesterId, string newText);
+    void DeleteComment(long blogId, long commentId, long requesterId);
 }

@@ -11,6 +11,9 @@ public class Blog : Entity
     public DateTime CreationDate { get; init; }
     public List<string> Images { get; init; }
 
+    private readonly List<Comment> _comments = new();
+    public IReadOnlyCollection<Comment> Comments => _comments.AsReadOnly();
+
     // Parameterless constructor for EF Core
     private Blog() { }
 
@@ -24,4 +27,29 @@ public class Blog : Entity
         CreationDate = creationDate;
         Images = images ?? new List<string>();
     }
+
+    public Comment AddComment(long authorId, string text)
+    {
+        var comment = new Comment(authorId, text, Id);
+        _comments.Add(comment);
+        return comment;
+    }
+
+    public void UpdateComment(long commentId, long requesterId, string newText)
+    {
+        var comment = FindComment(commentId);
+        comment.Update(newText, requesterId);
+    }
+
+    public void DeleteComment(long commentId, long requesterId)
+    {
+        var comment = FindComment(commentId);
+        if (comment.AuthorId != requesterId)
+            throw new UnauthorizedAccessException("Only the author can delete a comment.");
+        _comments.Remove(comment);
+    }
+
+    private Comment FindComment(long commentId) =>
+        _comments.FirstOrDefault(c => c.Id == commentId)
+        ?? throw new KeyNotFoundException($"Comment {commentId} not found.");
 }
