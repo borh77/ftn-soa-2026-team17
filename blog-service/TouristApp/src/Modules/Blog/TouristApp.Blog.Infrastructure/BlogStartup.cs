@@ -1,11 +1,13 @@
-using TouristApp.BuildingBlocks.Infrastructure.Database;
-using TouristApp.Blog.API.Public;
-using TouristApp.Blog.Core.Mappers;
-using TouristApp.Blog.Core.UseCases;
-using TouristApp.Blog.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using TouristApp.Blog.API.Public;
+using TouristApp.Blog.Core.Domain.RepositoryInterfaces;
+using TouristApp.Blog.Core.Mappers;
+using TouristApp.Blog.Core.UseCases;
+using TouristApp.Blog.Infrastructure.Database;
+using TouristApp.Blog.Infrastructure.Database.Repositories;
+using TouristApp.BuildingBlocks.Infrastructure.Database;
 
 namespace TouristApp.Blog.Infrastructure;
 
@@ -24,7 +26,7 @@ public static class BlogStartup
 
     private static void SetupCore(IServiceCollection services)
     {
-        services.AddScoped<IHealthService, HealthService>();
+        services.AddScoped<IBlogEntryService, BlogEntryService>();
     }
 
     private static void SetupInfrastructure(IServiceCollection services)
@@ -33,6 +35,8 @@ public static class BlogStartup
             DbConnectionStringBuilder.Build("blog")); //might change later
         dataSourceBuilder.EnableDynamicJson();
         var dataSource = dataSourceBuilder.Build();
+
+        services.AddScoped<IBlogEntryRepository, BlogEntryDbRepository>();
 
         services.AddDbContext<BlogContext>(opt =>
             opt.UseNpgsql(dataSource,

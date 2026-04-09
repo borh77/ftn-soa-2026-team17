@@ -1,3 +1,4 @@
+using Microsoft.OpenApi.Models;
 using TouristApp.API.Middleware;
 using TouristApp.API.Startup;
 
@@ -10,6 +11,35 @@ builder.Services.ConfigureCors(corsPolicy);
 
 builder.Services.RegisterModules();
 
+builder.Services.AddSwaggerGen(c =>
+{
+    
+   
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
+});
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -26,6 +56,8 @@ else
 
 app.UseRouting();
 app.UseCors(corsPolicy);
+app.UseAuthentication(); // Prepoznaje ko je korisnik na osnovu tokena
+app.UseAuthorization();
 app.UseHttpsRedirection();
 
 app.MapControllers();

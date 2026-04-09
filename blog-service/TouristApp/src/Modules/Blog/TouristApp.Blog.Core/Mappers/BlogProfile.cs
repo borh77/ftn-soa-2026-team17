@@ -1,11 +1,13 @@
 using AutoMapper;
+using TouristApp.Blog.API.Dtos;
+using TouristApp.Blog.Core.Domain;
 
 namespace TouristApp.Blog.Core.Mappers;
 
-/// <summary>
-/// AutoMapper profile for Blog module
-/// </summary>
 public class BlogProfile : Profile
 {
-    public BlogProfile() { }
+    public BlogProfile()
+    {
+        CreateMap<Domain.Blog, BlogEntryDto>().ReverseMap();
+    }
 }
