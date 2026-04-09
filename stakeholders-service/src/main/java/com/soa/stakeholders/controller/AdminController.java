@@ -19,4 +19,9 @@ public class AdminController {
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(adminService.getAllUsers());
     }
+
+     @PatchMapping("/users/{id}/block")
+    public ResponseEntity<UserResponse> blockUser(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.blockUser(id));
+    }
 }
