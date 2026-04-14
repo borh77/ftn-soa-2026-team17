@@ -27,10 +27,10 @@ public class BlogEntryDbRepository : IBlogEntryRepository
     }
 
     public Core.Domain.Blog? GetById(long id) =>
-        _dbContext.Blogs
-            .Include(b => b.Comments)
-            .FirstOrDefault(b => b.Id == id);
-
+      _dbContext.Blogs
+          .Include(b => b.Comments)
+          .Include(b => b.Likes)
+          .FirstOrDefault(b => b.Id == id);
     public Core.Domain.Blog Save(Core.Domain.Blog blog)
     {
         _dbContext.Blogs.Update(blog);

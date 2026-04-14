@@ -15,6 +15,7 @@ public static class BlogStartup
 {
     public static IServiceCollection ConfigureBlogModule(this IServiceCollection services)
     {
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         // Register AutoMapper profiles from this module's assembly
         services.AddAutoMapper(typeof(BlogProfile).Assembly);
 

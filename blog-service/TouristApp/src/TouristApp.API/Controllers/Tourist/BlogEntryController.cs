@@ -7,6 +7,7 @@ using TouristApp.BuildingBlocks.Core.UseCases;
 namespace TouristApp.API.Controllers.Tourist;
 
 [Authorize(Policy = "touristPolicy")]
+
 [Route("api/tourist/blog")]
 [ApiController]
 public class BlogEntryController : ControllerBase
@@ -46,6 +47,24 @@ public class BlogEntryController : ControllerBase
     {
         var requesterId = User.PersonId();
         _blogService.DeleteComment(blogId, commentId, requesterId);
+        return NoContent();
+    }
+
+
+
+    [HttpPost("{blogId:long}/likes")]
+    public ActionResult LikeBlog(long blogId)
+    {
+        var userId = User.PersonId();
+        _blogService.LikeBlog(blogId, userId);
+        return Ok();
+    }
+
+    [HttpDelete("{blogId:long}/likes")]
+    public ActionResult UnlikeBlog(long blogId)
+    {
+        var userId = User.PersonId();
+        _blogService.UnlikeBlog(blogId, userId);
         return NoContent();
     }
 }

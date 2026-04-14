@@ -27,6 +27,17 @@ public class BlogContext : DbContext
         modelBuilder.Entity<Comment>()
             .ToTable("comments");
 
+        modelBuilder.Entity<BlogLike>()
+    .ToTable("blog_likes");
+
+        modelBuilder.Entity<Core.Domain.Blog>()
+            .HasMany(b => b.Likes)
+            .WithOne()
+            .HasForeignKey(l => l.BlogId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         base.OnModelCreating(modelBuilder);
+
+
     }
 }

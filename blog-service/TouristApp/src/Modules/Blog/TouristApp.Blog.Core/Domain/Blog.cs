@@ -52,4 +52,27 @@ public class Blog : Entity
     private Comment FindComment(long commentId) =>
         _comments.FirstOrDefault(c => c.Id == commentId)
         ?? throw new KeyNotFoundException($"Comment {commentId} not found.");
+
+
+    private readonly List<BlogLike> _likes = new();
+    public IReadOnlyCollection<BlogLike> Likes => _likes.AsReadOnly();
+
+    public BlogLike AddLike(long userId)
+    {
+        if (_likes.Any(l => l.UserId == userId))
+            throw new InvalidOperationException("User already liked this blog.");
+        var like = new BlogLike(Id, userId);
+        _likes.Add(like);
+        return like;
+    }
+
+    public void RemoveLike(long userId)
+    {
+        var like = _likes.FirstOrDefault(l => l.UserId == userId)
+            ?? throw new InvalidOperationException("Like not found.");
+        _likes.Remove(like);
+    }
+
+    public int LikeCount => _likes.Count;
+    public bool IsLikedByUser(long userId) => _likes.Any(l => l.UserId == userId);
 }

@@ -11,4 +11,7 @@ public interface IBlogEntryService
     CommentDto AddComment(long blogId, long authorId, string text);
     CommentDto UpdateComment(long blogId, long commentId, long requesterId, string newText);
     void DeleteComment(long blogId, long commentId, long requesterId);
+
+    void LikeBlog(long blogId, long userId);
+    void UnlikeBlog(long blogId, long userId);
 }

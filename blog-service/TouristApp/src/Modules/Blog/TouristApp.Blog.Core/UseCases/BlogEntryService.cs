@@ -58,4 +58,19 @@ public class BlogEntryService : IBlogEntryService
     private Domain.Blog GetBlogOrThrow(long blogId) =>
         _blogRepository.GetById(blogId)
         ?? throw new KeyNotFoundException($"Blog {blogId} not found.");
+
+
+    public void LikeBlog(long blogId, long userId)
+    {
+        var blog = GetBlogOrThrow(blogId);
+        blog.AddLike(userId);
+        _blogRepository.Save(blog);
+    }
+
+    public void UnlikeBlog(long blogId, long userId)
+    {
+        var blog = GetBlogOrThrow(blogId);
+        blog.RemoveLike(userId);
+        _blogRepository.Save(blog);
+    }
 }

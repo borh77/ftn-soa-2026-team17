@@ -8,4 +8,6 @@ public class BlogEntryDto
     public DateTime CreationDate { get; set; }
     public List<string>? Images { get; set; }
     public List<CommentDto>? Comments { get; set; }
+    public int LikeCount { get; set; }
+    public bool IsLikedByCurrentUser { get; set; }
 }
