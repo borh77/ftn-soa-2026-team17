@@ -62,6 +62,7 @@ services:
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: root
       DATABASE_POOLING: true
+      ASPNETCORE_ENVIRONMENT: Development
     ports:
       - "8081:80"
     networks:
