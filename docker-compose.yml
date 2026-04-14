@@ -1,6 +1,5 @@
 services:
   stakeholders-db:
-    platform: linux/arm64 # ovo mozda mora da se promeni za windows
     image: postgres:16
     container_name: stakeholders-db
     environment:
@@ -19,6 +18,7 @@ services:
       context: ./stakeholders-service
       dockerfile: Dockerfile
     container_name: stakeholders-service
+    restart: on-failure
     depends_on:
       - stakeholders-db
     environment:
@@ -32,8 +32,44 @@ services:
     networks:
       - soa-network
 
+  blog-db:
+    image: postgres:16
+    container_name: blog-db
+    environment:
+      POSTGRES_DB: touristapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5433:5432"
+    volumes:
+      - blog_postgres_data:/var/lib/postgresql/data
+    networks:
+      - soa-network
+
+  blog-service:
+    build:
+      context: ./blog-service
+      dockerfile: Dockerfile
+    container_name: blog-service
+    restart: on-failure
+    depends_on:
+      - blog-db
+    environment:
+      DATABASE_HOST: blog-db
+      DATABASE_PORT: 5432
+      DATABASE_SCHEMA: touristapp
+      DATABASE_SCHEMA_NAME: blog
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: root
+      DATABASE_POOLING: true
+    ports:
+      - "8081:80"
+    networks:
+      - soa-network
+
 volumes:
   stakeholders_postgres_data:
+  blog_postgres_data:
 
 networks:
   soa-network:
