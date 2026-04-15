@@ -21,7 +21,10 @@ public class BlogEntryDbRepository : IBlogEntryRepository
 
     public PagedResult<Core.Domain.Blog> GetPaged(int page, int pageSize)
     {
-        var task = _dbContext.Blogs.Include(b => b.Comments).GetPaged(page, pageSize);
+        var task = _dbContext.Blogs
+            .Include(b => b.Comments)
+            .Include(b => b.Likes)
+            .GetPaged(page, pageSize);
         task.Wait();
         return task.Result;
     }
