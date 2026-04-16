@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.soa.stakeholders.dto.UpdateProfileRequest;
 
 @RestController
 @RequestMapping("/api/users")
@@ -18,5 +19,13 @@ public class UserController {
     public ResponseEntity<ProfileResponse> getMyProfile(Authentication authentication) {
         String username = authentication.getName();
         return ResponseEntity.ok(userService.getMyProfile(username));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<ProfileResponse> updateMyProfile(
+            Authentication authentication,
+            @RequestBody UpdateProfileRequest request) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(userService.updateMyProfile(username, request));
     }
 }
