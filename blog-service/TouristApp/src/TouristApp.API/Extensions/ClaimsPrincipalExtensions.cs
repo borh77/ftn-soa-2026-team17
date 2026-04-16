@@ -13,6 +13,6 @@ public static class ClaimsPrincipalExtensions
         if (sub != null && long.TryParse(sub, out var subId))
             return subId;
 
-        return 1; // fallback
+        return 0; // fallback
     }
 }

@@ -4,6 +4,7 @@ using TouristApp.API.Startup;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using TouristApp.Blog.Infrastructure.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +65,28 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<BlogContext>();
+
+        if (context.Database.EnsureCreated())
+        {
+            Console.WriteLine("TABELE SU USPEŠNO KREIRANE IZ KODA!");
+        }
+        else
+        {
+            Console.WriteLine("Tabele već postoje ili su migracije već odrađene.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"GREŠKA: {ex.Message}");
+    }
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
