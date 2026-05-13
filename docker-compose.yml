@@ -85,6 +85,20 @@ services:
     networks:
       - soa-network
 
+  gateway:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway
+    restart: on-failure
+    depends_on:
+      - blog-service
+      - stakeholders-service
+    ports:
+      - "8082:80"
+    networks:
+      - soa-network
+
 volumes:
   stakeholders_postgres_data:
   blog_postgres_data:
