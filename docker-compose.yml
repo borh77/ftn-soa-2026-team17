@@ -71,6 +71,19 @@ services:
     networks:
       - soa-network
 
+  follower-neo4j:
+    image: neo4j:5
+    container_name: follower-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/password123
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - follower_neo4j_data:/data
+    networks:
+      - soa-network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: soa-pgadmin
@@ -88,6 +101,7 @@ services:
 volumes:
   stakeholders_postgres_data:
   blog_postgres_data:
+  follower_neo4j_data:
 
 networks:
   soa-network:

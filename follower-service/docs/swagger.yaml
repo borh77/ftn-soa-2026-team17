@@ -1,0 +1,159 @@
+definitions:
+  model.FollowRequest:
+    properties:
+      followerId:
+        type: integer
+      followingId:
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /api/followers/{userId}/recommendations:
+    get:
+      description: Returns users followed by the people that selected user already
+        follows
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                format: int64
+                type: integer
+              type: array
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get profile recommendations
+      tags:
+      - followers
+  /api/followers/can-comment:
+    get:
+      description: User can comment only if they follow the blog author
+      parameters:
+      - description: Follower user ID
+        in: query
+        name: followerId
+        required: true
+        type: integer
+      - description: Blog author user ID
+        in: query
+        name: authorId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Check if user can comment on author's blog
+      tags:
+      - followers
+  /api/followers/follow:
+    post:
+      consumes:
+      - application/json
+      description: Creates FOLLOWS relationship between two users
+      parameters:
+      - description: Follow request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FollowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Follow user
+      tags:
+      - followers
+  /api/followers/unfollow:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes FOLLOWS relationship between two users
+      parameters:
+      - description: Unfollow request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FollowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Unfollow user
+      tags:
+      - followers
+swagger: "2.0"
