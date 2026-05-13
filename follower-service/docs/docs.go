@@ -17,6 +17,11 @@ const docTemplate = `{
     "paths": {
         "/api/followers/can-comment": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "User can comment only if they follow the blog author",
                 "produces": [
                     "application/json"
@@ -24,15 +29,8 @@ const docTemplate = `{
                 "tags": [
                     "followers"
                 ],
-                "summary": "Check if user can comment on author's blog",
+                "summary": "Check if authenticated user can comment on author's blog",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Follower user ID",
-                        "name": "followerId",
-                        "in": "query",
-                        "required": true
-                    },
                     {
                         "type": "integer",
                         "description": "Blog author user ID",
@@ -60,6 +58,15 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -74,7 +81,12 @@ const docTemplate = `{
         },
         "/api/followers/follow": {
             "post": {
-                "description": "Creates FOLLOWS relationship between two users",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates FOLLOWS relationship between authenticated user and selected user",
                 "consumes": [
                     "application/json"
                 ],
@@ -115,6 +127,65 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/followers/recommendations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns users followed by the people that authenticated user already follows",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "followers"
+                ],
+                "summary": "Get profile recommendations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -129,7 +200,12 @@ const docTemplate = `{
         },
         "/api/followers/unfollow": {
             "delete": {
-                "description": "Deletes FOLLOWS relationship between two users",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes FOLLOWS relationship between authenticated user and selected user",
                 "consumes": [
                     "application/json"
                 ],
@@ -170,53 +246,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/followers/{userId}/recommendations": {
-            "get": {
-                "description": "Returns users followed by the people that selected user already follows",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "followers"
-                ],
-                "summary": "Get profile recommendations",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                    "type": "integer",
-                                    "format": "int64"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -241,25 +272,29 @@ const docTemplate = `{
         "model.FollowRequest": {
             "type": "object",
             "properties": {
-                "followerId": {
-                    "type": "integer"
-                },
                 "followingId": {
                     "type": "integer"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
+	Version:          "1.0",
+	Host:             "localhost:8082",
+	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Title:            "Follower Service API",
+	Description:      "API for following users and recommending profiles using Neo4j graph database.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 
 	"ftn-soa-2026-team17/follower-service/internal/config"
 
@@ -17,6 +18,14 @@ import (
 	_ "ftn-soa-2026-team17/follower-service/docs"
 )
 
+// @title Follower Service API
+// @version 1.0
+// @description API for following users and recommending profiles using Neo4j graph database.
+// @host localhost:8082
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	driver := config.NewNeo4jDriver()
 	defer driver.Close(context.Background())
@@ -45,12 +54,18 @@ func main() {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.POST("/api/followers/follow", followerHandler.FollowUser)
-	router.GET("/api/followers/:userId/recommendations", followerHandler.GetRecommendations)
+	router.GET("/api/followers/recommendations", followerHandler.GetRecommendations)
 	router.DELETE("/api/followers/unfollow", followerHandler.UnfollowUser)
 	router.GET("/api/followers/can-comment", followerHandler.CanComment)
 
 
 	log.Println("Follower service started on port 8082")
 
-	router.Run(":8082")
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "8082"
+	}
+
+	router.Run(":" + port)
 }
