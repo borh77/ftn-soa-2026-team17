@@ -21,6 +21,10 @@ public interface ITourService
         int page,
         int pageSize);
 
+    PagedResult<TourResponseDto> GetActive(
+        int page,
+        int pageSize);
+
     /// <summary>
     /// Dodaje ključnu tačku u turu.
     /// </summary>

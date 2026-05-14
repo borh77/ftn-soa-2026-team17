@@ -56,6 +56,20 @@ public class ToursController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/tours/active – Lista svih aktivnih (publikovanih) tura.
+    /// Prikazuje sve ture u stanju Published.
+    /// </summary>
+    [HttpGet("active")]
+    [ProducesResponseType(typeof(PagedResult<TourResponseDto>), StatusCodes.Status200OK)]
+    public ActionResult<PagedResult<TourResponseDto>> GetActive(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var tours = _tourService.GetActive(page, pageSize);
+        return Ok(tours);
+    }
+
+    /// <summary>
     /// POST /api/tours/{tourId}/keypoints – Dodavanje ključne tačke u turu.
     /// </summary>
     [HttpPost("{tourId}/keypoints")]

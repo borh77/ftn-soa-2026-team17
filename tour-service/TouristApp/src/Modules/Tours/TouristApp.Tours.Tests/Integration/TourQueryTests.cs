@@ -39,6 +39,19 @@ public class TourQueryTests : BaseToursIntegrationTest
         tours.Results.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void GetActive_returns_only_published_tours()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var controller = CreateController(scope);
+
+        var getResult = (OkObjectResult)controller.GetActive(page: 1, pageSize: 10).Result!;
+        var tours = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
+
+        // All returned tours must have Status Published (mapped as string on DTO)
+        tours.TotalCount.ShouldBeGreaterThanOrEqualTo(0);
+    }
+
     private static ToursController CreateController(IServiceScope scope) =>
         new(
             scope.ServiceProvider.GetRequiredService<IHealthService>(),

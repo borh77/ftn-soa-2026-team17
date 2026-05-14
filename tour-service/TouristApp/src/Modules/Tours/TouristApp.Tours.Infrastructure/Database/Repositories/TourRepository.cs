@@ -51,4 +51,22 @@ internal class TourRepository : ITourRepository
 
         return new PagedResult<Tour>(items, totalCount);
     }
+
+    public PagedResult<Tour> GetActive(int page, int pageSize)
+    {
+        var normalizedPage = page <= 0 ? 1 : page;
+        var normalizedPageSize = pageSize <= 0 ? 10 : pageSize;
+
+        var query = _context.Tours
+            .Where(t => t.Status == TouristApp.Tours.Core.Domain.TourStatus.Published)
+            .OrderByDescending(t => t.Id);
+
+        var totalCount = query.Count();
+        var items = query
+            .Skip((normalizedPage - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
+            .ToList();
+
+        return new PagedResult<Tour>(items, totalCount);
+    }
 }

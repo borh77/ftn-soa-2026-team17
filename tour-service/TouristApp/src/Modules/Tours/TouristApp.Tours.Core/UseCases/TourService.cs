@@ -49,6 +49,14 @@ public class TourService : ITourService
             result.TotalCount);
     }
 
+    public PagedResult<TourResponseDto> GetActive(int page, int pageSize)
+    {
+        var result = _tourRepository.GetActive(page, pageSize);
+        return new PagedResult<TourResponseDto>(
+            result.Results.Select(_mapper.Map<TourResponseDto>).ToList(),
+            result.TotalCount);
+    }
+
     public void AddKeyPoint(long tourId, KeyPointDto dto)
     {
         var tour = _tourRepository.GetById(tourId)
