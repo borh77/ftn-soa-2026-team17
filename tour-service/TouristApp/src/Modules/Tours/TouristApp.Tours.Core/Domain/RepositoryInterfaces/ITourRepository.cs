@@ -12,4 +12,10 @@ public interface ITourRepository
         long authorId,
         int page,
         int pageSize);
+
+    PagedResult<Tour> GetActive(
+        int page,
+        int pageSize);
+
+    void Delete(Tour tour);
 }

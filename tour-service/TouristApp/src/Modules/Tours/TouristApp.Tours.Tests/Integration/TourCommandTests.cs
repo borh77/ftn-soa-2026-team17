@@ -16,9 +16,9 @@ public class TourCommandTests : BaseToursIntegrationTest
     public void Create_creates_tour_with_draft_status_and_zero_price()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var dto = new CreateTourDto(
             Name: "Novi Sad city walk",
             Description: "Lagana gradska setnja kroz centar.",
@@ -26,7 +26,7 @@ public class TourCommandTests : BaseToursIntegrationTest
             Tags: new List<string> { "grad", "pesacenje" }
         );
 
-        var result = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var result = (CreatedAtActionResult)controller.Create(dto).Result!;
 
         result.StatusCode.ShouldBe(201);
         var created = result.Value.ShouldBeOfType<TourResponseDto>();
@@ -40,19 +40,11 @@ public class TourCommandTests : BaseToursIntegrationTest
     public void Create_invalid_difficulty_throws_validation_error()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
+        var authorId = DateTime.UtcNow.Ticks + 5000;
+        var controller = CreateController(scope, userId: authorId.ToString());
 
         Should.Throw<EntityValidationException>(
             () => controller.Create(
-                authorId: DateTime.UtcNow.Ticks + 5000,
-            dto: new CreateTourDto("Nevalidna", "Opis", "UltraHard", new List<string>())));
+                new CreateTourDto("Nevalidna", "Opis", "UltraHard", new List<string>())));
     }
-
-    private static ToursController CreateController(IServiceScope scope) =>
-        new(
-            scope.ServiceProvider.GetRequiredService<IHealthService>(),
-            scope.ServiceProvider.GetRequiredService<ITourService>())
-        {
-            ControllerContext = BuildContext("-1")
-        };
 }
