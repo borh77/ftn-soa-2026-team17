@@ -92,4 +92,55 @@ public class TourService : ITourService
         tour.RemoveKeyPoint(ordinalNo);
         _tourRepository.Update(tour);
     }
+
+    public void Publish(long tourId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        tour.Publish();
+        _tourRepository.Update(tour);
+    }
+
+    public void Archive(long tourId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        tour.Archive();
+        _tourRepository.Update(tour);
+    }
+
+    public void Delete(long tourId, long authorId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može obrisati turu.");
+
+        if (tour.Status != TourStatus.Draft)
+            throw new EntityValidationException("Turu je moguće obrisati samo dok je u stanju Draft.");
+
+        _tourRepository.Delete(tour);
+    }
+
+    public void Update(long tourId, long authorId, UpdateTourDto dto)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može izmeniti turu.");
+
+        if (tour.Status != TourStatus.Draft)
+            throw new EntityValidationException("Turu je moguće menjati samo dok je u stanju Draft.");
+
+        if (!Enum.TryParse<TourDifficulty>(dto.Difficulty, true, out var difficulty))
+            throw new EntityValidationException("Tezina ture mora biti jedna od vrednosti: Easy, Medium, Hard.");
+
+        tour.UpdateDetails(dto.Name, dto.Description, difficulty, dto.Tags ?? new List<string>(), dto.Price);
+
+        _tourRepository.Update(tour);
+    }
 }

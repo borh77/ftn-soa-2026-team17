@@ -16,4 +16,6 @@ public interface ITourRepository
     PagedResult<Tour> GetActive(
         int page,
         int pageSize);
+
+    void Delete(Tour tour);
 }

@@ -69,4 +69,10 @@ internal class TourRepository : ITourRepository
 
         return new PagedResult<Tour>(items, totalCount);
     }
+
+    public void Delete(Tour tour)
+    {
+        _context.Tours.Remove(tour);
+        _context.SaveChanges();
+    }
 }

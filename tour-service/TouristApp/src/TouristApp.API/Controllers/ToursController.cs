@@ -99,6 +99,54 @@ public class ToursController : ControllerBase
     }
 
     /// <summary>
+    /// PUT /api/tours/{tourId}?authorId={authorId} – Ažuriranje osnovnih polja ture od strane autora dok je Draft.
+    /// </summary>
+    [HttpPut("{tourId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult Update([
+        FromRoute] long tourId, [FromQuery] long authorId, [FromBody] UpdateTourDto dto)
+    {
+        _tourService.Update(tourId, authorId, dto);
+        return Ok();
+    }
+
+    /// <summary>
+    /// POST /api/tours/{tourId}/publish – Objavljuje turu ako ispunjava uslove.
+    /// </summary>
+    [HttpPost("{tourId}/publish")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult Publish([FromRoute] long tourId)
+    {
+        _tourService.Publish(tourId);
+        return Ok();
+    }
+
+    /// <summary>
+    /// POST /api/tours/{tourId}/archive – Arhivira turu.
+    /// </summary>
+    [HttpPost("{tourId}/archive")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult Archive([FromRoute] long tourId)
+    {
+        _tourService.Archive(tourId);
+        return Ok();
+    }
+
+    /// <summary>
+    /// DELETE /api/tours/{tourId}?authorId={authorId} – Briše turu samo autor može dok je Draft.
+    /// </summary>
+    [HttpDelete("{tourId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult Delete([FromRoute] long tourId, [FromQuery] long authorId)
+    {
+        _tourService.Delete(tourId, authorId);
+        return Ok();
+    }
+
+    /// <summary>
     /// DELETE /api/tours/{tourId}/keypoints/{ordinalNo} – Brisanje ključne tačke.
     /// </summary>
     [HttpDelete("{tourId}/keypoints/{ordinalNo}")]

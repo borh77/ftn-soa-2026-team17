@@ -39,4 +39,18 @@ public interface ITourService
     /// Uklanja ključnu tačku iz ture.
     /// </summary>
     void RemoveKeyPoint(long tourId, int ordinalNo);
+
+        /// <summary>
+        /// Objavljuje turu.
+        /// </summary>
+        void Publish(long tourId);
+
+        /// <summary>
+        /// Arhivira turu.
+        /// </summary>
+        void Archive(long tourId);
+
+        void Delete(long tourId, long authorId);
+
+        void Update(long tourId, long authorId, UpdateTourDto dto);
 }

@@ -77,6 +77,8 @@ public class Tour : AggregateRoot
     /// </summary>
     public void AddKeyPoint(KeyPoint keyPoint)
     {
+        EnsureEditable();
+
         if (keyPoint == null)
             throw new ArgumentNullException(nameof(keyPoint), "Ključna tačka ne sme biti null.");
 
@@ -92,6 +94,8 @@ public class Tour : AggregateRoot
     /// </summary>
     public void RemoveKeyPoint(int ordinalNo)
     {
+        EnsureEditable();
+
         var kp = _keyPoints.FirstOrDefault(k => k.OrdinalNo == ordinalNo);
         if (kp != null)
         {
@@ -105,6 +109,8 @@ public class Tour : AggregateRoot
     /// </summary>
     public void UpdateKeyPoint(int ordinalNo, KeyPointUpdate update)
     {
+        EnsureEditable();
+
         if (update == null)
             throw new ArgumentNullException(nameof(update), "Ažuriranje ključne tačke ne sme biti null.");
 
@@ -129,6 +135,52 @@ public class Tour : AggregateRoot
     /// Briše sve ključne tačke iz ture.
     /// </summary>
     public void ClearKeyPoints() => _keyPoints.Clear();
+
+    public void UpdateDetails(string name, string description, TourDifficulty difficulty, List<string> tags, decimal price)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new EntityValidationException("Naziv ture je obavezan.");
+
+        if (name.Length > 200)
+            throw new EntityValidationException("Naziv ture ne sme biti duži od 200 karaktera.");
+
+        if (string.IsNullOrWhiteSpace(description))
+            throw new EntityValidationException("Opis ture je obavezan.");
+
+        if (description.Length > 5000)
+            throw new EntityValidationException("Opis ture ne sme biti duži od 5000 karaktera.");
+
+        Name = name;
+        Description = description;
+        Difficulty = difficulty;
+        _tags = tags ?? new List<string>();
+        Price = price;
+    }
+
+    private void EnsureEditable()
+    {
+        if (Status != TourStatus.Draft)
+            throw new EntityValidationException("Turu je moguće menjati samo dok je u stanju Draft.");
+    }
+
+    /// <summary>
+    /// Publikuje turu (Draft -> Published) samo ako sadrži najmanje dve ključne tačke.
+    /// </summary>
+    public void Publish()
+    {
+        if (_keyPoints.Count < 2)
+            throw new EntityValidationException("Tura mora imati najmanje dve ključne tačke da bi bila publikovana.");
+
+        Status = TourStatus.Published;
+    }
+
+    /// <summary>
+    /// Arhivira turu (Published -> Archived).
+    /// </summary>
+    public void Archive()
+    {
+        Status = TourStatus.Archived;
+    }
 
     /// <summary>
     /// Rekalkulator rednih brojeva ključnih tačaka.
