@@ -1,5 +1,6 @@
 ﻿using TouristApp.BuildingBlocks.Core.Domain;
 using TouristApp.BuildingBlocks.Core.Exceptions;
+using TouristApp.Tours.Core.Domain;
 
 namespace TouristApp.Tours.Core.Domain;
 
@@ -12,8 +13,10 @@ public class Tour : AggregateRoot
     public IReadOnlyList<string> Tags => _tags.AsReadOnly();
     public TourStatus Status { get; private set; }
     public decimal Price { get; private set; }
+    public IReadOnlyList<KeyPoint> KeyPoints => _keyPoints.AsReadOnly();
 
     private List<string> _tags = new();
+    private List<KeyPoint> _keyPoints = new();
 
     // Required by EF Core
     private Tour() { }
@@ -67,5 +70,77 @@ public class Tour : AggregateRoot
 
         if (description.Length > 5000)
             throw new EntityValidationException("Opis ture ne sme biti duži od 5000 karaktera.");
+    }
+
+    /// <summary>
+    /// Dodaje ključnu tačku u turu.
+    /// </summary>
+    public void AddKeyPoint(KeyPoint keyPoint)
+    {
+        if (keyPoint == null)
+            throw new ArgumentNullException(nameof(keyPoint), "Ključna tačka ne sme biti null.");
+
+        if (_keyPoints.Any(k => k.OrdinalNo == keyPoint.OrdinalNo))
+            throw new EntityValidationException($"Ključna tačka sa rednim brojem {keyPoint.OrdinalNo} već postoji u turi.");
+
+        _keyPoints.Add(keyPoint);
+        RecalculateKeyPointOrdinals();
+    }
+
+    /// <summary>
+    /// Uklanja ključnu tačku iz ture prema rednom broju.
+    /// </summary>
+    public void RemoveKeyPoint(int ordinalNo)
+    {
+        var kp = _keyPoints.FirstOrDefault(k => k.OrdinalNo == ordinalNo);
+        if (kp != null)
+        {
+            _keyPoints.Remove(kp);
+            RecalculateKeyPointOrdinals();
+        }
+    }
+
+    /// <summary>
+    /// Ažurira ključnu tačku prema rednom broju.
+    /// </summary>
+    public void UpdateKeyPoint(int ordinalNo, KeyPointUpdate update)
+    {
+        if (update == null)
+            throw new ArgumentNullException(nameof(update), "Ažuriranje ključne tačke ne sme biti null.");
+
+        var keyPoint = _keyPoints.FirstOrDefault(k => k.OrdinalNo == ordinalNo);
+        if (keyPoint == null)
+            throw new EntityValidationException($"Ključna tačka sa rednim brojem {ordinalNo} nije pronađena.");
+
+        var updatedKeyPoint = new KeyPoint(
+            ordinalNo,
+            update.Name ?? keyPoint.Name,
+            update.Description ?? keyPoint.Description,
+            update.SecretText ?? keyPoint.SecretText,
+            update.ImageUrl ?? keyPoint.ImageUrl,
+            update.Latitude,
+            update.Longitude
+        );
+
+        _keyPoints[_keyPoints.IndexOf(keyPoint)] = updatedKeyPoint;
+    }
+
+    /// <summary>
+    /// Briše sve ključne tačke iz ture.
+    /// </summary>
+    public void ClearKeyPoints() => _keyPoints.Clear();
+
+    /// <summary>
+    /// Rekalkulator rednih brojeva ključnih tačaka.
+    /// </summary>
+    private void RecalculateKeyPointOrdinals()
+    {
+        var ordered = _keyPoints.OrderBy(k => k.OrdinalNo).ToList();
+        for (int i = 0; i < ordered.Count; i++)
+        {
+            ordered[i].UpdateOrdinalNo(i + 1);
+        }
+        _keyPoints.Clear();
+        _keyPoints.AddRange(ordered);
     }
 }

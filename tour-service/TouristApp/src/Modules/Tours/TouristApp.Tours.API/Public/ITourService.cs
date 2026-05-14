@@ -20,4 +20,19 @@ public interface ITourService
         long authorId,
         int page,
         int pageSize);
+
+    /// <summary>
+    /// Dodaje ključnu tačku u turu.
+    /// </summary>
+    void AddKeyPoint(long tourId, KeyPointDto dto);
+
+    /// <summary>
+    /// Ažurira ključnu tačku u turi.
+    /// </summary>
+    void UpdateKeyPoint(long tourId, int ordinalNo, KeyPointDto dto);
+
+    /// <summary>
+    /// Uklanja ključnu tačku iz ture.
+    /// </summary>
+    void RemoveKeyPoint(long tourId, int ordinalNo);
 }

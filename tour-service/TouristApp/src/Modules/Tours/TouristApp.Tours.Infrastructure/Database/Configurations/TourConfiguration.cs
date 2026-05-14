@@ -36,6 +36,23 @@ internal class TourConfiguration : IEntityTypeConfiguration<Tour>
             .HasColumnType("jsonb")
             .IsRequired();
 
+        // Ključne tačke se čuvaju kao JSON niz
+        // Ignorišemo javnu navigaciju `KeyPoints` jer koristimo polje `_keyPoints` za pristup.
+        builder.Ignore(t => t.KeyPoints);
+        builder.OwnsMany<KeyPoint>("_keyPoints", kpBuilder =>
+        {
+            kpBuilder.ToJson("KeyPoints");
+            kpBuilder.Property(kp => kp.OrdinalNo).IsRequired();
+            kpBuilder.Property(kp => kp.Name).IsRequired().HasMaxLength(200);
+            kpBuilder.Property(kp => kp.Description).IsRequired().HasMaxLength(5000);
+            kpBuilder.Property(kp => kp.SecretText).IsRequired();
+            kpBuilder.Property(kp => kp.ImageUrl).IsRequired();
+            kpBuilder.Property(kp => kp.Latitude).IsRequired();
+            kpBuilder.Property(kp => kp.Longitude).IsRequired();
+        });
+
+        builder.Navigation("_keyPoints").UsePropertyAccessMode(Microsoft.EntityFrameworkCore.PropertyAccessMode.Field);
+
         builder.Property(t => t.Status)
             .IsRequired()
             .HasConversion<string>()

@@ -20,15 +20,19 @@ public abstract class BaseTestFactory<TDbContext> : WebApplicationFactory<Progra
             var db = scopedServices.GetRequiredService<TDbContext>();
             var logger = scopedServices.GetRequiredService<ILogger<BaseTestFactory<TDbContext>>>();
 
-            var path = Path.Combine(".", "..", "..", "..", "TestData");
+            var path = GetTestDataPath();
             InitializeDatabase(db, path, logger);
         });
     }
+
+    protected virtual string GetTestDataPath() => Path.Combine(".", "..", "..", "..", "TestData");
 
     private static void InitializeDatabase(DbContext context, string scriptFolder, ILogger logger)
     {
         try
         {
+            // Ensure a clean database for integration tests: delete any leftover schema then recreate.
+            try { context.Database.EnsureDeleted(); } catch { }
             context.Database.EnsureCreated();
             var databaseCreator = context.Database.GetService<IRelationalDatabaseCreator>();
             databaseCreator.CreateTables();

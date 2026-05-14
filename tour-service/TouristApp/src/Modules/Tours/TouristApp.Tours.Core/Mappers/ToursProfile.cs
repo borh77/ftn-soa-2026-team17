@@ -9,7 +9,7 @@ public class ToursProfile : Profile
     public ToursProfile()
     {
         CreateMap<Tour, TourResponseDto>()
-            .ConstructUsing(src => new TourResponseDto(
+            .ConstructUsing((src, ctx) => new TourResponseDto(
                 src.Id,
                 src.AuthorId,
                 src.Name,
@@ -17,7 +17,30 @@ public class ToursProfile : Profile
                 src.Difficulty.ToString(),
                 src.Tags,
                 src.Status.ToString(),
-                src.Price
+                src.Price,
+                ctx.Mapper.Map<IReadOnlyList<KeyPointDto>>(src.KeyPoints)
+            ));
+
+        CreateMap<KeyPoint, KeyPointDto>()
+            .ConstructUsing(src => new KeyPointDto(
+                src.OrdinalNo,
+                src.Name,
+                src.Description,
+                src.SecretText,
+                src.ImageUrl,
+                src.Latitude,
+                src.Longitude
+            ));
+
+        CreateMap<KeyPointDto, KeyPoint>()
+            .ConstructUsing(src => new KeyPoint(
+                src.OrdinalNo,
+                src.Name,
+                src.Description,
+                src.SecretText,
+                src.ImageUrl,
+                src.Latitude,
+                src.Longitude
             ));
     }
 }

@@ -54,4 +54,47 @@ public class ToursController : ControllerBase
         var tours = _tourService.GetByAuthor(authorId, page, pageSize);
         return Ok(tours);
     }
+
+    /// <summary>
+    /// POST /api/tours/{tourId}/keypoints – Dodavanje ključne tačke u turu.
+    /// </summary>
+    [HttpPost("{tourId}/keypoints")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult AddKeyPoint(
+        [FromRoute] long tourId,
+        [FromBody] KeyPointDto dto)
+    {
+        _tourService.AddKeyPoint(tourId, dto);
+        return Ok();
+    }
+
+    /// <summary>
+    /// PUT /api/tours/{tourId}/keypoints/{ordinalNo} – Ažuriranje ključne tačke.
+    /// </summary>
+    [HttpPut("{tourId}/keypoints/{ordinalNo}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult UpdateKeyPoint(
+        [FromRoute] long tourId,
+        [FromRoute] int ordinalNo,
+        [FromBody] KeyPointDto dto)
+    {
+        _tourService.UpdateKeyPoint(tourId, ordinalNo, dto);
+        return Ok();
+    }
+
+    /// <summary>
+    /// DELETE /api/tours/{tourId}/keypoints/{ordinalNo} – Brisanje ključne tačke.
+    /// </summary>
+    [HttpDelete("{tourId}/keypoints/{ordinalNo}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult RemoveKeyPoint(
+        [FromRoute] long tourId,
+        [FromRoute] int ordinalNo)
+    {
+        _tourService.RemoveKeyPoint(tourId, ordinalNo);
+        return Ok();
+    }
 }

@@ -8,5 +8,6 @@ public record TourResponseDto(
     string Difficulty,
     IReadOnlyList<string> Tags,
     string Status,
-    decimal Price
+    decimal Price,
+    IReadOnlyList<KeyPointDto> KeyPoints
 );
