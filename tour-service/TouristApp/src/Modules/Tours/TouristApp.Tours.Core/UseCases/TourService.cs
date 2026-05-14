@@ -111,6 +111,17 @@ public class TourService : ITourService
         _tourRepository.Update(tour);
     }
 
+    public void AddKeyPoint(long tourId, long authorId, KeyPointDto dto)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može dodati ključnu tačku.");
+
+        AddKeyPoint(tourId, dto);
+    }
+
     public void UpdateKeyPoint(long tourId, int ordinalNo, KeyPointDto dto)
     {
         var tour = _tourRepository.GetById(tourId)
@@ -128,6 +139,17 @@ public class TourService : ITourService
         _tourRepository.Update(tour);
     }
 
+    public void UpdateKeyPoint(long tourId, int ordinalNo, long authorId, KeyPointDto dto)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može ažurirati ključnu tačku.");
+
+        UpdateKeyPoint(tourId, ordinalNo, dto);
+    }
+
     public void RemoveKeyPoint(long tourId, int ordinalNo)
     {
         var tour = _tourRepository.GetById(tourId)
@@ -135,6 +157,17 @@ public class TourService : ITourService
 
         tour.RemoveKeyPoint(ordinalNo);
         _tourRepository.Update(tour);
+    }
+
+    public void RemoveKeyPoint(long tourId, int ordinalNo, long authorId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može obrisati ključnu tačku.");
+
+        RemoveKeyPoint(tourId, ordinalNo);
     }
 
     public void Publish(long tourId)
@@ -146,6 +179,17 @@ public class TourService : ITourService
         _tourRepository.Update(tour);
     }
 
+    public void Publish(long tourId, long authorId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može objaviti turu.");
+
+        Publish(tourId);
+    }
+
     public void Archive(long tourId)
     {
         var tour = _tourRepository.GetById(tourId)
@@ -153,6 +197,17 @@ public class TourService : ITourService
 
         tour.Archive();
         _tourRepository.Update(tour);
+    }
+
+    public void Archive(long tourId, long authorId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može arhivirati turu.");
+
+        Archive(tourId);
     }
 
     public void Delete(long tourId, long authorId)

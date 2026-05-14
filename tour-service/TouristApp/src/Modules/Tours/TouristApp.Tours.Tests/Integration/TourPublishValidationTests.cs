@@ -21,11 +21,11 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
     public void Publish_requires_minimum_two_keypoints()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>());
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         // Try to publish with zero keypoints
@@ -46,7 +46,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         var publishResult = controller.Publish(created.Id);
         publishResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(authorId, 1, 10).Result!;
+        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
         var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.Status.ShouldBe("Published");
@@ -56,9 +56,9 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
     public void Publish_after_removing_keypoint_fails_if_less_than_two()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks + 1;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var kps = new List<KeyPointDto>
         {
             new KeyPointDto(1, "P1", "Desc", "S", "i.jpg", 44, 20),
@@ -66,14 +66,14 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
             new KeyPointDto(3, "P3", "Desc", "S", "k.jpg", 44.2, 20.2)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>(), kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         // Publish with 3 keypoints
         var publishResult = controller.Publish(created.Id);
         publishResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(authorId, 1, 10).Result!;
+        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
         var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.Status.ShouldBe("Published");
@@ -90,16 +90,16 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
     public void Cannot_modify_keypoints_after_publishing()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks + 2;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var kps = new List<KeyPointDto>
         {
             new KeyPointDto(1, "P1", "Desc", "S", "i.jpg", 44, 20),
             new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>(), kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         // Publish
@@ -121,11 +121,11 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
     public void Edit_tour_can_append_keypoints_in_draft()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks + 3;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>());
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         // Add initial keypoint
@@ -139,10 +139,10 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         };
         var updateDto = new UpdateTourDto(created.Name, created.Description, created.Difficulty, 
             created.Tags.ToList(), created.Price, kps);
-        var updateResult = controller.Update(created.Id, authorId, updateDto);
+        var updateResult = controller.Update(created.Id, updateDto);
         updateResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(authorId, 1, 10).Result!;
+        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
         var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.KeyPoints.Count.ShouldBe(2);
@@ -154,16 +154,16 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
     public void Create_with_exact_two_keypoints_and_publish_succeeds()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks + 4;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var kps = new List<KeyPointDto>
         {
             new KeyPointDto(1, "P1", "Desc", "S", "i.jpg", 44, 20),
             new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>(), kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         created.KeyPoints.Count.ShouldBe(2);
@@ -172,7 +172,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         var publishResult = controller.Publish(created.Id);
         publishResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(authorId, 1, 10).Result!;
+        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
         var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.Status.ShouldBe("Published");
@@ -182,9 +182,9 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
     public void Create_with_insert_at_middle_maintains_correct_order_for_publish()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks + 5;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         // Create keypoints with out-of-order ordinales to test insertion
         var kps = new List<KeyPointDto>
         {
@@ -193,7 +193,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
             new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>(), kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         // Verify order after insertion
@@ -211,24 +211,24 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
     public void Delete_tour_only_allowed_in_draft_status()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks + 6;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var kps = new List<KeyPointDto>
         {
             new KeyPointDto(1, "P1", "Desc", "S", "i.jpg", 44, 20),
             new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>(), kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         // Delete in draft should succeed
-        var deleteResult = controller.Delete(created.Id, authorId);
+        var deleteResult = controller.Delete(created.Id);
         deleteResult.ShouldBeOfType<OkResult>();
 
         // Verify tour is deleted
-        var getResult = (OkObjectResult)controller.GetByAuthor(authorId, 1, 10).Result!;
+        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
         var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
         paged.Results.Any(r => r.Id == created.Id).ShouldBeFalse();
     }
@@ -237,36 +237,37 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
     public void Invalid_author_cannot_modify_tour()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks + 7;
-        var otherAuthorId = authorId + 1000;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>());
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
-        // Other author tries to update
+        // Other author tries to update (switch to different userId)
+        var scope2 = Factory.Services.CreateScope();
+        var controller2 = CreateController(scope2, userId: (authorId + 1000).ToString());
         var updateDto = new UpdateTourDto("Modified", "Desc", "Easy", new List<string>(), 0);
-        Should.Throw<EntityValidationException>(() => controller.Update(created.Id, otherAuthorId, updateDto));
+        Should.Throw<EntityValidationException>(() => controller2.Update(created.Id, updateDto));
 
         // Other author tries to delete
-        Should.Throw<EntityValidationException>(() => controller.Delete(created.Id, otherAuthorId));
+        Should.Throw<EntityValidationException>(() => controller2.Delete(created.Id));
     }
 
     [Fact]
     public void Price_can_be_updated_in_draft()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
-
         var authorId = DateTime.UtcNow.Ticks + 8;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
         var kps = new List<KeyPointDto>
         {
             new KeyPointDto(1, "P1", "Desc", "S", "i.jpg", 44, 20),
             new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>(), kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(authorId, dto).Result!;
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         created.Price.ShouldBe(0);
@@ -274,20 +275,12 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         // Update price to 99.99
         var updateDto = new UpdateTourDto(created.Name, created.Description, created.Difficulty, 
             created.Tags.ToList(), 99.99m);
-        var updateResult = controller.Update(created.Id, authorId, updateDto);
+        var updateResult = controller.Update(created.Id, updateDto);
         updateResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(authorId, 1, 10).Result!;
+        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
         var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.Price.ShouldBe(99.99m);
     }
-
-    private static ToursController CreateController(IServiceScope scope) =>
-        new(
-            scope.ServiceProvider.GetRequiredService<IHealthService>(),
-            scope.ServiceProvider.GetRequiredService<ITourService>())
-        {
-            ControllerContext = BuildContext("-1")
-        };
 }

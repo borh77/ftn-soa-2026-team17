@@ -16,9 +16,9 @@ public class TourQueryTests : BaseToursIntegrationTest
     public void GetByAuthor_returns_only_tours_for_requested_author()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
+        var controller = CreateController(scope, userId: "101");
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(authorId: 101, page: 1, pageSize: 10).Result!;
+        var getResult = (OkObjectResult)controller.GetByAuthor(page: 1, pageSize: 10).Result!;
         var tours = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
 
         tours.TotalCount.ShouldBeGreaterThanOrEqualTo(1);
@@ -30,9 +30,9 @@ public class TourQueryTests : BaseToursIntegrationTest
     public void GetByAuthor_returns_empty_when_author_has_no_tours()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
+        var controller = CreateController(scope, userId: "999999");
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(authorId: 999999, page: 1, pageSize: 10).Result!;
+        var getResult = (OkObjectResult)controller.GetByAuthor(page: 1, pageSize: 10).Result!;
         var tours = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
 
         tours.TotalCount.ShouldBe(0);
@@ -51,12 +51,4 @@ public class TourQueryTests : BaseToursIntegrationTest
         // All returned tours must have Status Published (mapped as string on DTO)
         tours.TotalCount.ShouldBeGreaterThanOrEqualTo(0);
     }
-
-    private static ToursController CreateController(IServiceScope scope) =>
-        new(
-            scope.ServiceProvider.GetRequiredService<IHealthService>(),
-            scope.ServiceProvider.GetRequiredService<ITourService>())
-        {
-            ControllerContext = BuildContext("-1")
-        };
 }
