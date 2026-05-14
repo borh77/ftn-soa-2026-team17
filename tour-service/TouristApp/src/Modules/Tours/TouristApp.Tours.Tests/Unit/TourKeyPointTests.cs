@@ -24,17 +24,24 @@ public class TourKeyPointTests
     }
 
     [Fact]
-    public void AddKeyPoint_throws_when_duplicate_ordinal()
+    public void AddKeyPoint_at_same_ordinal_shifts_existing()
     {
-        // Arrange
+        // Arrange: test that inserting at same ordinal shifts existing keypoints
         var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
         var kp1 = new KeyPoint(1, "Museum", "A famous museum", "Secret", "museum.jpg", 44.82, 20.45);
         var kp2 = new KeyPoint(1, "Park", "A public park", "Secret", "park.jpg", 44.83, 20.46);
 
         tour.AddKeyPoint(kp1);
 
-        // Act & Assert
-        Should.Throw<EntityValidationException>(() => tour.AddKeyPoint(kp2));
+        // Act: insert at ordinal 1 (should shift kp1 to ordinal 2)
+        tour.AddKeyPoint(kp2);
+
+        // Assert
+        tour.KeyPoints.Count.ShouldBe(2);
+        tour.KeyPoints[0].Name.ShouldBe("Park");
+        tour.KeyPoints[0].OrdinalNo.ShouldBe(1);
+        tour.KeyPoints[1].Name.ShouldBe("Museum");
+        tour.KeyPoints[1].OrdinalNo.ShouldBe(2);
     }
 
     [Fact]
