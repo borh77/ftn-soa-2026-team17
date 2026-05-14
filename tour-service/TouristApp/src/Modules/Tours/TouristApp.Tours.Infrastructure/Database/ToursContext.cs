@@ -17,6 +17,7 @@ public class ToursContext : DbContext
     {
         modelBuilder.HasDefaultSchema("Tours");
         modelBuilder.ApplyConfiguration(new TourConfiguration());
+        modelBuilder.ApplyConfiguration(new KeyPointConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }

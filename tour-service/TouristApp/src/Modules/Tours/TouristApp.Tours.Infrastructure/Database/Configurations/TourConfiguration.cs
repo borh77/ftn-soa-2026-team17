@@ -36,22 +36,14 @@ internal class TourConfiguration : IEntityTypeConfiguration<Tour>
             .HasColumnType("jsonb")
             .IsRequired();
 
-        // Ključne tačke se čuvaju kao JSON niz
-        // Ignorišemo javnu navigaciju `KeyPoints` jer koristimo polje `_keyPoints` za pristup.
-        builder.Ignore(t => t.KeyPoints);
-        builder.OwnsMany<KeyPoint>("_keyPoints", kpBuilder =>
-        {
-            kpBuilder.ToJson("KeyPoints");
-            kpBuilder.Property(kp => kp.OrdinalNo).IsRequired();
-            kpBuilder.Property(kp => kp.Name).IsRequired().HasMaxLength(200);
-            kpBuilder.Property(kp => kp.Description).IsRequired().HasMaxLength(5000);
-            kpBuilder.Property(kp => kp.SecretText).IsRequired();
-            kpBuilder.Property(kp => kp.ImageUrl).IsRequired();
-            kpBuilder.Property(kp => kp.Latitude).IsRequired();
-            kpBuilder.Property(kp => kp.Longitude).IsRequired();
-        });
+        // KeyPoints su regularna entitetska kolekcija u zasebnoj tabeli
+        builder.HasMany(t => t.KeyPoints)
+            .WithOne()
+            .HasForeignKey("TourId")
+            .IsRequired();
 
-        builder.Navigation("_keyPoints").UsePropertyAccessMode(Microsoft.EntityFrameworkCore.PropertyAccessMode.Field);
+        // Koristimo field-backed pristup za kolekciju preko privatnog polja
+        builder.Navigation(t => t.KeyPoints).UsePropertyAccessMode(Microsoft.EntityFrameworkCore.PropertyAccessMode.Field);
 
         builder.Property(t => t.Status)
             .IsRequired()

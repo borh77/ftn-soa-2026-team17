@@ -20,6 +20,17 @@ internal class TourRepository : ITourRepository
         _context.SaveChanges();
     }
 
+    public void Update(Tour tour)
+    {
+        _context.Tours.Update(tour);
+        _context.SaveChanges();
+    }
+
+    public Tour? GetById(long id)
+    {
+        return _context.Tours.FirstOrDefault(t => t.Id == id);
+    }
+
     public PagedResult<Tour> GetByAuthorId(
         long authorId,
         int page,

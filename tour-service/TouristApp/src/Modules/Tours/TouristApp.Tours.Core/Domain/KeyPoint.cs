@@ -1,10 +1,11 @@
-using TouristApp.BuildingBlocks.Core.Domain;
 using TouristApp.BuildingBlocks.Core.Exceptions;
 
 namespace TouristApp.Tours.Core.Domain;
 
-public class KeyPoint : ValueObject
+public class KeyPoint
 {
+    public int Id { get; private set; }
+    public long TourId { get; private set; }
     public int OrdinalNo { get; private set; }
     public string Name { get; private set; } = null!;
     public string Description { get; private set; } = null!;
@@ -78,13 +79,5 @@ public class KeyPoint : ValueObject
         if (newOrdinal <= 0)
             throw new EntityValidationException("Redni broj ključne tačke mora biti pozitivan broj.");
         OrdinalNo = newOrdinal;
-    }
-
-    protected override IEnumerable<object> GetEqualityComponents()
-    {
-        yield return OrdinalNo;
-        yield return Name;
-        yield return Latitude;
-        yield return Longitude;
     }
 }
