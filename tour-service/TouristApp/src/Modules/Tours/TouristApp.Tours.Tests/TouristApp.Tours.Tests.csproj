@@ -32,4 +32,8 @@
     <ProjectReference Include="..\TouristApp.Tours.Infrastructure\TouristApp.Tours.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
 </Project>

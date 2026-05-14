@@ -9,6 +9,22 @@ namespace TouristApp.Tours.Tests;
 
 public class ToursTestFactory : BaseTestFactory<ToursContext>
 {
+    protected override string GetTestDataPath()
+    {
+        var current = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+        while (current != null)
+        {
+            var candidate = Path.Combine(current.FullName, "Modules", "Tours", "TouristApp.Tours.Tests", "TestData");
+            if (Directory.Exists(candidate))
+                return candidate;
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate Tours test data folder.");
+    }
+
     protected override IServiceCollection ReplaceNeededDbContexts(IServiceCollection services)
     {
         var descriptor = services.SingleOrDefault(
