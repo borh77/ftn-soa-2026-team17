@@ -82,8 +82,17 @@ public class Tour : AggregateRoot
         if (keyPoint == null)
             throw new ArgumentNullException(nameof(keyPoint), "Ključna tačka ne sme biti null.");
 
-        if (_keyPoints.Any(k => k.OrdinalNo == keyPoint.OrdinalNo))
-            throw new EntityValidationException($"Ključna tačka sa rednim brojem {keyPoint.OrdinalNo} već postoji u turi.");
+        // Allow inserting at a specific position. If ordinal is greater than count+1, it's invalid.
+        var desiredOrdinal = keyPoint.OrdinalNo;
+        var maxOrdinal = _keyPoints.Count + 1;
+        if (desiredOrdinal > maxOrdinal)
+            throw new EntityValidationException($"Redni broj ključne tačke ne sme biti veći od {maxOrdinal}.");
+
+        // Shift existing keypoints with ordinal >= desiredOrdinal up by 1
+        foreach (var kp in _keyPoints.Where(k => k.OrdinalNo >= desiredOrdinal))
+        {
+            kp.UpdateOrdinalNo(kp.OrdinalNo + 1);
+        }
 
         _keyPoints.Add(keyPoint);
         RecalculateKeyPointOrdinals();

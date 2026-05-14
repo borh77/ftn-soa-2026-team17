@@ -36,9 +36,20 @@ public class TourService : ITourService
         // If initial keypoints provided in DTO, add them and let server assign ordinals
         if (dto.KeyPoints != null && dto.KeyPoints.Any())
         {
-            foreach (var kpDto in dto.KeyPoints)
+            // Validate initial keypoints: no negative ordinals
+            var negative = dto.KeyPoints.Any(k => k.OrdinalNo.HasValue && k.OrdinalNo.Value <= 0);
+            if (negative)
+                throw new EntityValidationException("Redni broj ključne tačke mora biti pozitivan broj.");
+
+            // Sort keypoints by ordinal (nulls last) so we add them in order without ordinal-too-large errors
+            var sortedKps = dto.KeyPoints
+                .OrderBy(k => k.OrdinalNo.HasValue ? k.OrdinalNo.Value : int.MaxValue)
+                .ToList();
+
+            // Add keypoints respecting provided ordinals (insert at positions)
+            foreach (var kpDto in sortedKps)
             {
-                var ordinal = tour.KeyPoints.Count + 1;
+                var ordinal = kpDto.OrdinalNo.HasValue ? kpDto.OrdinalNo.Value : tour.KeyPoints.Count + 1;
                 var kp = new KeyPoint(
                     ordinal,
                     kpDto.Name,
@@ -81,8 +92,11 @@ public class TourService : ITourService
         var tour = _tourRepository.GetById(tourId)
             ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
 
-        // Server assigns ordinal if client omitted it; append to the end by default
-        var ordinal = tour.KeyPoints.Count + 1;
+        // Determine ordinal: use client-provided if present, otherwise append
+        var ordinal = dto.OrdinalNo.HasValue ? dto.OrdinalNo.Value : tour.KeyPoints.Count + 1;
+        if (ordinal <= 0)
+            throw new EntityValidationException("Redni broj ključne tačke mora biti pozitivan broj.");
+
         var keyPoint = new KeyPoint(
             ordinal,
             dto.Name,
@@ -169,7 +183,38 @@ public class TourService : ITourService
         if (!Enum.TryParse<TourDifficulty>(dto.Difficulty, true, out var difficulty))
             throw new EntityValidationException("Tezina ture mora biti jedna od vrednosti: Easy, Medium, Hard.");
 
+        // Validate keypoints in update payload (if any): no negative ordinals, no duplicate ordinals
+        if (dto.KeyPoints != null && dto.KeyPoints.Any())
+        {
+            var negative = dto.KeyPoints.Any(k => k.OrdinalNo.HasValue && k.OrdinalNo.Value <= 0);
+            if (negative)
+                throw new EntityValidationException("Redni broj ključne tačke mora biti pozitivan broj.");
+
+            var duplicates = dto.KeyPoints.Where(k => k.OrdinalNo.HasValue).Select(k => k.OrdinalNo!.Value).GroupBy(x => x).Any(g => g.Count() > 1);
+            if (duplicates)
+                throw new EntityValidationException("Duplikat rednih brojeva u listi ključnih tačaka nije dozvoljen.");
+        }
+
         tour.UpdateDetails(dto.Name, dto.Description, difficulty, dto.Tags ?? new List<string>(), dto.Price);
+
+        // Process keypoints if provided: respect ordinals or append
+        if (dto.KeyPoints != null && dto.KeyPoints.Any())
+        {
+            foreach (var kpDto in dto.KeyPoints)
+            {
+                var ordinal = kpDto.OrdinalNo.HasValue ? kpDto.OrdinalNo.Value : tour.KeyPoints.Count + 1;
+                var kp = new KeyPoint(
+                    ordinal,
+                    kpDto.Name,
+                    kpDto.Description,
+                    kpDto.SecretText,
+                    kpDto.ImageUrl,
+                    kpDto.Latitude,
+                    kpDto.Longitude
+                );
+                tour.AddKeyPoint(kp);
+            }
+        }
 
         _tourRepository.Update(tour);
     }
