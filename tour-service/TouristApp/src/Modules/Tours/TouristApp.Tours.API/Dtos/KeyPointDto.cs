@@ -1,7 +1,7 @@
 namespace TouristApp.Tours.API.Dtos;
 
 public record KeyPointDto(
-    int OrdinalNo,
+    int? OrdinalNo,
     string Name,
     string Description,
     string SecretText,

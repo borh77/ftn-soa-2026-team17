@@ -32,15 +32,7 @@ public class ToursProfile : Profile
                 src.Longitude
             ));
 
-        CreateMap<KeyPointDto, KeyPoint>()
-            .ConstructUsing(src => new KeyPoint(
-                src.OrdinalNo,
-                src.Name,
-                src.Description,
-                src.SecretText,
-                src.ImageUrl,
-                src.Latitude,
-                src.Longitude
-            ));
+        // Intentionally do not map KeyPointDto -> KeyPoint globally because
+        // server assigns ordinals and construction is handled in service layer.
     }
 }

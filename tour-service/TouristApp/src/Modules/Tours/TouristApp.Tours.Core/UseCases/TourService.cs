@@ -33,6 +33,25 @@ public class TourService : ITourService
             dto.Tags ?? new List<string>()
         );
 
+        // If initial keypoints provided in DTO, add them and let server assign ordinals
+        if (dto.KeyPoints != null && dto.KeyPoints.Any())
+        {
+            foreach (var kpDto in dto.KeyPoints)
+            {
+                var ordinal = tour.KeyPoints.Count + 1;
+                var kp = new KeyPoint(
+                    ordinal,
+                    kpDto.Name,
+                    kpDto.Description,
+                    kpDto.SecretText,
+                    kpDto.ImageUrl,
+                    kpDto.Latitude,
+                    kpDto.Longitude
+                );
+                tour.AddKeyPoint(kp);
+            }
+        }
+
         _tourRepository.Add(tour);
 
         return _mapper.Map<TourResponseDto>(tour);
@@ -62,7 +81,18 @@ public class TourService : ITourService
         var tour = _tourRepository.GetById(tourId)
             ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
 
-        var keyPoint = _mapper.Map<KeyPoint>(dto);
+        // Server assigns ordinal if client omitted it; append to the end by default
+        var ordinal = tour.KeyPoints.Count + 1;
+        var keyPoint = new KeyPoint(
+            ordinal,
+            dto.Name,
+            dto.Description,
+            dto.SecretText,
+            dto.ImageUrl,
+            dto.Latitude,
+            dto.Longitude
+        );
+
         tour.AddKeyPoint(keyPoint);
         _tourRepository.Update(tour);
     }

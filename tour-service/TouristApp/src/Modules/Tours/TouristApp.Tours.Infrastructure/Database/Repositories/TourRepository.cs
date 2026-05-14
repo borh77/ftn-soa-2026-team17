@@ -28,7 +28,9 @@ internal class TourRepository : ITourRepository
 
     public Tour? GetById(long id)
     {
-        return _context.Tours.FirstOrDefault(t => t.Id == id);
+        return _context.Tours
+            .Include(t => t.KeyPoints)
+            .FirstOrDefault(t => t.Id == id);
     }
 
     public PagedResult<Tour> GetByAuthorId(
@@ -40,6 +42,7 @@ internal class TourRepository : ITourRepository
         var normalizedPageSize = pageSize <= 0 ? 10 : pageSize;
 
         var query = _context.Tours
+            .Include(t => t.KeyPoints)
             .Where(t => t.AuthorId == authorId)
             .OrderByDescending(t => t.Id);
 
@@ -58,6 +61,7 @@ internal class TourRepository : ITourRepository
         var normalizedPageSize = pageSize <= 0 ? 10 : pageSize;
 
         var query = _context.Tours
+            .Include(t => t.KeyPoints)
             .Where(t => t.Status == TouristApp.Tours.Core.Domain.TourStatus.Published)
             .OrderByDescending(t => t.Id);
 
