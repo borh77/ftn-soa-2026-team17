@@ -1,1 +1,14 @@
-<p>position-simulator works!</p>
+<h2>Position simulator</h2>
+
+<p>Click on the map to set your current location.</p>
+
+<div class="map-wrapper">
+  @if (currentPosition) {
+    <div class="position-card">
+      <p><strong>Latitude:</strong> {{ currentPosition.latitude.toFixed(3) }}</p>
+      <p><strong>Longitude:</strong> {{ currentPosition.longitude.toFixed(3) }}</p>
+    </div>
+  }
+
+  <div id="map"></div>
+</div>
