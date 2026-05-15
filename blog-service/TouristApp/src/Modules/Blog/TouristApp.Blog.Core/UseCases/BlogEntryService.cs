@@ -4,16 +4,22 @@ using TouristApp.Blog.API.Public;
 using TouristApp.Blog.Core.Domain.RepositoryInterfaces;
 using TouristApp.BuildingBlocks.Core.UseCases;
 
+
 namespace TouristApp.Blog.Core.UseCases;
 
 public class BlogEntryService : IBlogEntryService
 {
     private readonly IBlogEntryRepository _blogRepository;
+    private readonly IMongoCommentRepository _mongoCommentRepository;
     private readonly IMapper _mapper;
 
-    public BlogEntryService(IBlogEntryRepository blogRepository, IMapper mapper)
+    public BlogEntryService(
+        IBlogEntryRepository blogRepository,
+        IMongoCommentRepository mongoCommentRepository,
+        IMapper mapper)
     {
         _blogRepository = blogRepository;
+        _mongoCommentRepository = mongoCommentRepository;
         _mapper = mapper;
     }
 
@@ -36,6 +42,7 @@ public class BlogEntryService : IBlogEntryService
         var blog = GetBlogOrThrow(blogId);
         var comment = blog.AddComment(authorId, text);
         _blogRepository.Save(blog);
+        _mongoCommentRepository.Save(comment);
         return _mapper.Map<CommentDto>(comment);
     }
 
@@ -45,6 +52,8 @@ public class BlogEntryService : IBlogEntryService
         blog.UpdateComment(commentId, requesterId, newText);
         _blogRepository.Save(blog);
         var updated = blog.Comments.First(c => c.Id == commentId);
+        _mongoCommentRepository.Update(updated);
+
         return _mapper.Map<CommentDto>(updated);
     }
 
@@ -53,6 +62,7 @@ public class BlogEntryService : IBlogEntryService
         var blog = GetBlogOrThrow(blogId);
         blog.DeleteComment(commentId, requesterId);
         _blogRepository.Save(blog);
+        _mongoCommentRepository.Delete(commentId);
     }
 
     private Domain.Blog GetBlogOrThrow(long blogId) =>
