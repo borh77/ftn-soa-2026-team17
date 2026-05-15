@@ -127,8 +127,8 @@ services:
 
   tour-service:
     build:
-      context: .
-      dockerfile: tour-service/Dockerfile
+      context: ./tour-service
+      dockerfile: Dockerfile
     container_name: tour-service
     restart: on-failure
     depends_on:
