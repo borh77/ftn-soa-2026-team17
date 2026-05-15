@@ -1,0 +1,37 @@
+<h2>Admin users</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Email</th>
+      <th>Role</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    @for (user of users; track user.id) {
+      <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.role }}</td>
+        <td>
+          @if (user.blocked) {
+            Blocked
+          } @else {
+            Active
+          }
+        </td>
+        <td>
+          @if (!user.blocked && user.role !== 'ADMIN') {
+            <button type="button" (click)="blockUser(user.id)">
+              Block
+            </button>
+          }
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>

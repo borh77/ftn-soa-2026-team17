@@ -1,0 +1,19 @@
+<h2>My profile</h2>
+
+@if (profile) {
+  <div>
+    <p><strong>Username:</strong> {{ profile.username }}</p>
+    <p><strong>Email:</strong> {{ profile.email }}</p>
+    <p><strong>Role:</strong> {{ profile.role }}</p>
+    <p><strong>First name:</strong> {{ profile.firstName }}</p>
+    <p><strong>Last name:</strong> {{ profile.lastName }}</p>
+    <p><strong>Biography:</strong> {{ profile.biography }}</p>
+    <p><strong>Motto:</strong> {{ profile.motto }}</p>
+
+    @if (profile.profileImage) {
+      <img [src]="profile.profileImage" alt="Profile image" width="150" />
+    }
+  </div>
+} @else {
+  <p>Loading profile...</p>
+}

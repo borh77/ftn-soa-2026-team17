@@ -84,6 +84,8 @@ services:
     networks:
       - soa-network
 
+    # follower treba da se dokerizuje zbog gateway-a
+
   follower-neo4j:
     image: neo4j:5
     container_name: follower-neo4j
@@ -160,6 +162,7 @@ services:
       - blog-service
       - stakeholders-service
       - tour-service
+      # -follower-service dodaj kada ema dokerizuje follower-service
     ports:
       - "8082:80"
     networks:
