@@ -111,7 +111,7 @@ services:
     networks:
       - soa-network
 
-tours-db:
+  tours-db:
     image: postgres:16
     container_name: tours-db
     environment:
@@ -125,11 +125,11 @@ tours-db:
     networks:
       - soa-network
 
-tours-service:
+  tour-service:
     build:
       context: .
-      dockerfile: tours-service/Dockerfile
-    container_name: tours-service
+      dockerfile: tour-service/Dockerfile
+    container_name: tour-service
     restart: on-failure
     depends_on:
       - tours-db
@@ -150,7 +150,7 @@ tours-service:
     networks:
       - soa-network
 
-gateway:
+  gateway:
     build:
       context: ./gateway-service
       dockerfile: Dockerfile
@@ -159,7 +159,7 @@ gateway:
     depends_on:
       - blog-service
       - stakeholders-service
-      - tours-service
+      - tour-service
     ports:
       - "8082:80"
     networks:
@@ -170,6 +170,7 @@ volumes:
   blog_postgres_data:
   follower_neo4j_data:
   blog_mongo_data:
+  tours_postgres_data:
 
 networks:
   soa-network:
