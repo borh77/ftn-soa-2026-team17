@@ -5,8 +5,6 @@ using System.Text;
 using TouristApp.API.Authentification;
 using TouristApp.API.Middleware;
 using TouristApp.API.Startup;
-using Microsoft.EntityFrameworkCore;
-using TouristApp.Blog.Infrastructure.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,67 +45,7 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("ADMIN"));
 });
 
-builder.Services.AddSwaggerGen(c =>
-{
-    
-   
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        In = ParameterLocation.Header,
-        Description = "Please enter token",
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        BearerFormat = "JWT",
-        Scheme = "bearer"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[]{}
-        }
-    });
-});
 var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<BlogContext>();
-
-    const int maxRetries = 10;
-    var delay = TimeSpan.FromSeconds(5);
-
-    for (int attempt = 1; attempt <= maxRetries; attempt++)
-    {
-        try
-        {
-            Console.WriteLine($"Pokušaj primene migracija {attempt}/{maxRetries}...");
-            context.Database.Migrate();
-            Console.WriteLine("Migracije su uspešno primenjene.");
-            break;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Migracije nisu uspele u pokušaju {attempt}: {ex.Message}");
-
-            if (attempt == maxRetries)
-            {
-                throw;
-            }
-
-            Thread.Sleep(delay);
-        }
-    }
-}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -123,7 +61,7 @@ else
 
 app.UseRouting();
 app.UseCors(corsPolicy);
-app.UseAuthentication(); // Prepoznaje ko je korisnik na osnovu tokena
+app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpsRedirection();
 

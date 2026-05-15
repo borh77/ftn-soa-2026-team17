@@ -548,3 +548,31 @@ $RECYCLE.BIN/
 
 # Migrations
 src/**/Migrations/*
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+src/environments/environment*.ts
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Angular cache
+.cache/
+
+# Temporary files
+tmp/
+temp/
