@@ -38,6 +38,7 @@ public static class BlogStartup
         var dataSource = dataSourceBuilder.Build();
 
         services.AddScoped<IBlogEntryRepository, BlogEntryDbRepository>();
+        services.AddScoped<IMongoCommentRepository, MongoCommentRepository>();
 
         services.AddDbContext<BlogContext>(opt =>
             opt.UseNpgsql(dataSource,

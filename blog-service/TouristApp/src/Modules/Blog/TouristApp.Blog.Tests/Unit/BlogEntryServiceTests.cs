@@ -21,7 +21,7 @@ public class BlogEntryServiceTests
         _repoMock = new Mock<IBlogEntryRepository>();
         var mapper = new MapperConfiguration(c => c.AddProfile<BlogProfile>())
             .CreateMapper();
-        _service = new BlogEntryService(_repoMock.Object, mapper);
+       _service = new BlogEntryService(_repoMock.Object, new FakeMongoCommentRepository(), mapper);
     }
 
     // --- Create blog ---
@@ -135,5 +135,20 @@ public class BlogEntryServiceTests
             .GetProperty("Id")!
             .SetValue(blog, id);
         return blog;
+    }
+
+    public class FakeMongoCommentRepository : IMongoCommentRepository
+    {
+        public void Save(Comment comment)
+        {
+        }
+
+        public void Update(Comment comment)
+        {
+        }
+
+        public void Delete(long postgresCommentId)
+        {
+        }
     }
 }

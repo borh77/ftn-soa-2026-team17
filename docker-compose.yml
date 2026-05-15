@@ -31,6 +31,16 @@ services:
       - "8080:8080"
     networks:
       - soa-network
+  
+  blog-mongo:
+    image: mongo:7
+    container_name: blog-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - blog_mongo_data:/data/db
+    networks:
+      - soa-network
 
   blog-db:
     image: postgres:16
@@ -54,6 +64,7 @@ services:
     restart: on-failure
     depends_on:
       - blog-db
+      - blog-mongo
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:80
@@ -64,6 +75,8 @@ services:
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: root
       DATABASE_POOLING: "true"
+      MONGO_CONNECTION_STRING: mongodb://blog-mongo:27017
+      MONGO_DATABASE: blog
       Jwt__Secret: my-super-secret-jwt-key-2026-test
       Jwt__Expiration: 86400000
     ports:
@@ -88,6 +101,7 @@ services:
 volumes:
   stakeholders_postgres_data:
   blog_postgres_data:
+  blog_mongo_data:
 
 networks:
   soa-network:
