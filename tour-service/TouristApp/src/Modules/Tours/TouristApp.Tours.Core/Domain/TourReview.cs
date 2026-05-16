@@ -93,7 +93,7 @@ public class TourReview : Entity
         if (visitedAt > DateTime.UtcNow.AddDays(1))
             throw new EntityValidationException("Visit date cannot be in the future.");
 
-        if (images != null && images.Any(i => !string.IsNullOrWhiteSpace(i) && i.Length > 1000))
-            throw new EntityValidationException("Image URL cannot be longer than 1000 characters.");
+        if (images != null && images.Any(i => !string.IsNullOrWhiteSpace(i) && i.Length > 2000000))
+            throw new EntityValidationException("Review image is too large.");
     }
 }

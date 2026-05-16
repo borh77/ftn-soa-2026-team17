@@ -32,6 +32,9 @@ public class TourReviewService : ITourReviewService
         if (tour.Status != TourStatus.Published)
             throw new EntityValidationException("Only published tours can be reviewed.");
 
+        if (_tourReviewRepository.ExistsByTourAndTourist(tourId, touristId))
+            throw new EntityValidationException("You have already reviewed this tour.");
+
         var review = TourReview.Create(
             tourId,
             touristId,

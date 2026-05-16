@@ -1,19 +1,29 @@
 <nav class="navbar">
-  <a routerLink="/">Home</a>
+  <a class="brand" routerLink="/">
+    <span class="brand-mark">T</span>
+    <span>TouristApp</span>
+  </a>
 
-  @if (!authService.isLoggedIn()) {
-    <a routerLink="/login">Login</a>
-    <a routerLink="/register">Register</a>
-  }
+  <div class="nav-links">
+    <a routerLink="/">Home</a>
 
-  @if (authService.isLoggedIn()) {
-    <a routerLink="/profile">Profile</a>
-    <a routerLink="/position-simulator">Position simulator</a>
-
-    @if (authService.getUserRole() === 'ADMIN') {
-      <a routerLink="/admin/users">Admin users</a>
+    @if (!authService.isLoggedIn()) {
+      <a routerLink="/login">Login</a>
+      <a routerLink="/register">Register</a>
     }
 
+    @if (authService.isLoggedIn()) {
+      <a routerLink="/profile">Profile</a>
+      <a routerLink="/tours">Tours</a>
+      <a routerLink="/position-simulator">Position simulator</a>
+
+      @if (authService.getUserRole() === 'ADMIN') {
+        <a routerLink="/admin/users">Admin users</a>
+      }
+    }
+  </div>
+
+  @if (authService.isLoggedIn()) {
     <button type="button" (click)="logout()">Logout</button>
   }
 </nav>

@@ -1,19 +1,116 @@
-<h2>My profile</h2>
-
 @if (profile) {
-  <div>
-    <p><strong>Username:</strong> {{ profile.username }}</p>
-    <p><strong>Email:</strong> {{ profile.email }}</p>
-    <p><strong>Role:</strong> {{ profile.role }}</p>
-    <p><strong>First name:</strong> {{ profile.firstName }}</p>
-    <p><strong>Last name:</strong> {{ profile.lastName }}</p>
-    <p><strong>Biography:</strong> {{ profile.biography }}</p>
-    <p><strong>Motto:</strong> {{ profile.motto }}</p>
+  <section class="profile-shell">
+    <div class="profile-hero">
+      @if (profile.profileImage) {
+        <img [src]="profile.profileImage" alt="Profile image" />
+      } @else {
+        <div class="avatar-fallback">{{ initials() }}</div>
+      }
 
-    @if (profile.profileImage) {
-      <img [src]="profile.profileImage" alt="Profile image" width="150" />
+      <div>
+        <p class="eyebrow">My profile</p>
+        <h1>{{ profile.firstName || profile.username }} {{ profile.lastName }}</h1>
+        <p class="username">@{{ profile.username }}</p>
+      </div>
+
+      <span class="role-chip">{{ profile.role }}</span>
+    </div>
+
+    @if (successMessage) {
+      <p class="profile-notice success">{{ successMessage }}</p>
     }
-  </div>
+
+    @if (errorMessage) {
+      <p class="profile-notice error">{{ errorMessage }}</p>
+    }
+
+    @if (!editMode) {
+      <button class="edit-button" type="button" (click)="startEdit()">Edit profile</button>
+    } @else {
+      <form class="profile-edit-form" (ngSubmit)="saveProfile()">
+        <div
+          class="profile-drop-zone"
+          [class.active]="imageDropActive"
+          (dragover)="onImageDragOver($event)"
+          (dragleave)="onImageDragLeave($event)"
+          (drop)="onImageDrop($event)"
+        >
+          @if (editForm.profileImage) {
+            <img [src]="editForm.profileImage" alt="Profile preview" />
+          } @else {
+            <div class="avatar-fallback">{{ initials() }}</div>
+          }
+
+          <div>
+            <strong>Drag profile image here</strong>
+            <span>Drop an image file or image URL.</span>
+          </div>
+        </div>
+
+        <div class="profile-grid">
+          <label>
+            First name
+            <input type="text" name="firstName" [(ngModel)]="editForm.firstName" />
+          </label>
+
+          <label>
+            Last name
+            <input type="text" name="lastName" [(ngModel)]="editForm.lastName" />
+          </label>
+
+          <label>
+            Profile image URL
+            <input type="url" name="profileImage" [(ngModel)]="editForm.profileImage" />
+          </label>
+
+          <label>
+            Motto
+            <input type="text" name="motto" [(ngModel)]="editForm.motto" />
+          </label>
+        </div>
+
+        <label>
+          Biography
+          <textarea rows="5" name="biography" [(ngModel)]="editForm.biography"></textarea>
+        </label>
+
+        <div class="edit-actions">
+          <button class="save-button" type="submit">Save changes</button>
+          <button class="cancel-button" type="button" (click)="clearProfileImage()">Clear image</button>
+          <button class="cancel-button" type="button" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </form>
+    }
+
+    <div class="profile-grid">
+      <article>
+        <span>Email</span>
+        <strong>{{ profile.email }}</strong>
+      </article>
+
+      <article>
+        <span>First name</span>
+        <strong>{{ profile.firstName || 'Not set' }}</strong>
+      </article>
+
+      <article>
+        <span>Last name</span>
+        <strong>{{ profile.lastName || 'Not set' }}</strong>
+      </article>
+
+      <article>
+        <span>Motto</span>
+        <strong>{{ profile.motto || 'No motto yet' }}</strong>
+      </article>
+    </div>
+
+    <article class="bio-card">
+      <span>Biography</span>
+      <p>{{ profile.biography || 'No biography added yet.' }}</p>
+    </article>
+  </section>
 } @else {
-  <p>Loading profile...</p>
+  <section class="profile-shell loading-card">
+    <p>Loading profile...</p>
+  </section>
 }

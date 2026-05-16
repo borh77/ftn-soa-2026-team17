@@ -1,2 +1,51 @@
 /* You can add global styles to this file, and also import other style files */
 @import "leaflet/dist/leaflet.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    linear-gradient(120deg, rgba(17, 58, 67, 0.72), rgba(42, 157, 143, 0.26)),
+    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80")
+      center / cover fixed;
+  color: #1f2d2b;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.20), transparent 28%),
+    radial-gradient(circle at 82% 12%, rgba(244, 162, 97, 0.22), transparent 26%);
+  animation: appGlow 12s ease-in-out infinite alternate;
+}
+
+@keyframes appGlow {
+  from {
+    opacity: 0.55;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0.95;
+    transform: translateY(14px);
+  }
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}

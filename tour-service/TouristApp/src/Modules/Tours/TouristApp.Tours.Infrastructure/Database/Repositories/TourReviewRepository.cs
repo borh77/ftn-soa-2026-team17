@@ -19,6 +19,11 @@ internal class TourReviewRepository : ITourReviewRepository
         _context.SaveChanges();
     }
 
+    public bool ExistsByTourAndTourist(long tourId, long touristId)
+    {
+        return _context.TourReviews.Any(r => r.TourId == tourId && r.TouristId == touristId);
+    }
+
     public PagedResult<TourReview> GetByTourId(long tourId, int page, int pageSize)
     {
         var normalizedPage = page <= 0 ? 1 : page;
