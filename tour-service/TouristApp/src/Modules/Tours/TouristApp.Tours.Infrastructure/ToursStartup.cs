@@ -27,6 +27,7 @@ public static class ToursStartup
     {
         services.AddScoped<IHealthService, HealthService>();
         services.AddScoped<ITourService, TourService>();
+        services.AddScoped<ITourReviewService, TourReviewService>();
         services.AddScoped<ITouristPositionService, TouristPositionService>();
     }
 
@@ -42,6 +43,7 @@ public static class ToursStartup
                 x => x.MigrationsHistoryTable("__EFMigrationsHistory", "Tours")));
 
         services.AddScoped<ITourRepository, TourRepository>();
+        services.AddScoped<ITourReviewRepository, TourReviewRepository>();
         services.AddScoped<ITouristPositionRepository, TouristPositionRepository>();
     }
 }

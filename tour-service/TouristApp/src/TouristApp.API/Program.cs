@@ -63,6 +63,52 @@ using (var scope = app.Services.CreateScope())
         {
             Console.WriteLine($"Pokušaj inicijalizacije baze {attempt}/{maxRetries}...");
             context.Database.EnsureCreated();
+            context.Database.ExecuteSqlRaw("""
+                CREATE TABLE IF NOT EXISTS "Tours"."TourReviews" (
+                    "Id" bigint GENERATED ALWAYS AS IDENTITY,
+                    "TourId" bigint NOT NULL,
+                    "TouristId" bigint NOT NULL,
+                    "TouristUsername" character varying(200) NOT NULL,
+                    "Rating" integer NOT NULL,
+                    "Comment" character varying(2000) NOT NULL,
+                    "VisitedAt" timestamp with time zone NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "Images" jsonb NOT NULL,
+                    CONSTRAINT "PK_TourReviews" PRIMARY KEY ("Id"),
+                    CONSTRAINT "FK_TourReviews_Tours_TourId" FOREIGN KEY ("TourId")
+                        REFERENCES "Tours"."Tours" ("Id") ON DELETE CASCADE,
+                    CONSTRAINT "CK_TourReviews_Rating" CHECK ("Rating" >= 1 AND "Rating" <= 5)
+                );
+
+                CREATE INDEX IF NOT EXISTS "IX_TourReviews_TourId"
+                    ON "Tours"."TourReviews" ("TourId");
+
+                ALTER TABLE "Tours"."TourReviews"
+                    ADD COLUMN IF NOT EXISTS "TouristUsername" character varying(200) NOT NULL DEFAULT '';
+
+                ALTER TABLE "Tours"."TourReviews"
+                    ADD COLUMN IF NOT EXISTS "VisitedAt" timestamp with time zone NOT NULL DEFAULT now();
+
+                ALTER TABLE "Tours"."TourReviews"
+                    ADD COLUMN IF NOT EXISTS "CreatedAt" timestamp with time zone NOT NULL DEFAULT now();
+
+                ALTER TABLE "Tours"."TourReviews"
+                    ADD COLUMN IF NOT EXISTS "Images" jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = 'Tours'
+                          AND table_name = 'TourReviews'
+                          AND column_name = 'ImageUrls'
+                    ) THEN
+                        ALTER TABLE "Tours"."TourReviews"
+                            ALTER COLUMN "ImageUrls" DROP NOT NULL;
+                    END IF;
+                END $$;
+                """);
             Console.WriteLine("Baza je uspešno inicijalizovana.");
             break;
         }

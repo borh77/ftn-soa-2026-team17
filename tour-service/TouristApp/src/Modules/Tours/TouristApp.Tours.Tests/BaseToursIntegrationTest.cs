@@ -20,7 +20,8 @@ public abstract class BaseToursIntegrationTest : BaseWebIntegrationTest<ToursTes
     protected static ToursController CreateController(IServiceScope scope, string userId = "-1") =>
         new(
             scope.ServiceProvider.GetRequiredService<IHealthService>(),
-            scope.ServiceProvider.GetRequiredService<ITourService>())
+            scope.ServiceProvider.GetRequiredService<ITourService>(),
+            scope.ServiceProvider.GetRequiredService<ITourReviewService>())
         {
             ControllerContext = BuildContext(userId)
         };

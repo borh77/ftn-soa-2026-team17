@@ -16,11 +16,16 @@ public class ToursController : ControllerBase
 {
     private readonly IHealthService _healthService;
     private readonly ITourService _tourService;
+    private readonly ITourReviewService _tourReviewService;
 
-    public ToursController(IHealthService healthService, ITourService tourService)
+    public ToursController(
+        IHealthService healthService,
+        ITourService tourService,
+        ITourReviewService tourReviewService)
     {
         _healthService = healthService;
         _tourService = tourService;
+        _tourReviewService = tourReviewService;
     }
 
     /// <summary>GET /api/tours/ping – provera da li je modul aktivan.</summary>
@@ -75,6 +80,38 @@ public class ToursController : ControllerBase
     /// <summary>
     /// POST /api/tours/{tourId}/keypoints – Dodavanje ključne tačke u turu (samo guide autoru).
     /// </summary>
+    /// <summary>
+    /// GET /api/tours/{tourId}/reviews - Lista recenzija za turu.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("{tourId}/reviews")]
+    [ProducesResponseType(typeof(PagedResult<TourReviewDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult<PagedResult<TourReviewDto>> GetReviews(
+        [FromRoute] long tourId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var reviews = _tourReviewService.GetByTour(tourId, page, pageSize);
+        return Ok(reviews);
+    }
+
+    /// <summary>
+    /// POST /api/tours/{tourId}/reviews - Turista ostavlja recenziju za turu.
+    /// </summary>
+    [Authorize(Policy = "touristPolicy")]
+    [HttpPost("{tourId}/reviews")]
+    [ProducesResponseType(typeof(TourReviewDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult<TourReviewDto> CreateReview(
+        [FromRoute] long tourId,
+        [FromBody] CreateTourReviewDto dto)
+    {
+        var touristId = User.PersonId();
+        var review = _tourReviewService.Create(tourId, touristId, User.Username(), dto);
+        return CreatedAtAction(nameof(GetReviews), new { tourId = review.TourId }, review);
+    }
+
     [Authorize(Policy = "guidePolicy")]
     [HttpPost("{tourId}/keypoints")]
     [ProducesResponseType(StatusCodes.Status200OK)]

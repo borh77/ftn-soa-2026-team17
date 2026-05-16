@@ -20,4 +20,12 @@ public static class ClaimsPrincipalExtensions
     {
         return user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "UNKNOWN";
     }
+
+    public static string Username(this ClaimsPrincipal user)
+    {
+        return user.Claims.FirstOrDefault(c => c.Type == "sub")?.Value
+            ?? user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value
+            ?? user.Identity?.Name
+            ?? string.Empty;
+    }
 }

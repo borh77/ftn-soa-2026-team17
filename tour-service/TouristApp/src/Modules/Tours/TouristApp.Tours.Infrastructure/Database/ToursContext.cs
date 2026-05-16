@@ -11,6 +11,8 @@ public class ToursContext : DbContext
 {
     public DbSet<Tour> Tours { get; set; } = null!;
 
+    public DbSet<TourReview> TourReviews { get; set; } = null!;
+
     public DbSet<TouristPosition> TouristPositions { get; set; } = null!;
 
     public ToursContext(DbContextOptions<ToursContext> options) : base(options) { }
@@ -20,6 +22,7 @@ public class ToursContext : DbContext
         modelBuilder.HasDefaultSchema("Tours");
         modelBuilder.ApplyConfiguration(new TourConfiguration());
         modelBuilder.ApplyConfiguration(new KeyPointConfiguration());
+        modelBuilder.ApplyConfiguration(new TourReviewConfiguration());
         modelBuilder.ApplyConfiguration(new TouristPositionConfiguration());
         base.OnModelCreating(modelBuilder);
     }
