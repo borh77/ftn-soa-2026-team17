@@ -1,0 +1,441 @@
+.tour-page {
+  display: grid;
+  gap: 26px;
+}
+
+.page-header,
+.section-title,
+.tour-card-head,
+.keypoint-head,
+.card-actions,
+.meta-row,
+.tag-row {
+  display: flex;
+  align-items: center;
+}
+
+.page-header,
+.section-title,
+.tour-card-head,
+.keypoint-head {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hero-strip {
+  border: 1px solid #c7dde7;
+  border-radius: 8px;
+  padding: 28px;
+  background: linear-gradient(120deg, #ffffff 0%, #eef9f6 48%, #fff4eb 100%);
+  box-shadow: 0 18px 36px rgba(38, 70, 83, 0.08);
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #24715f;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: 34px;
+}
+
+.header-copy {
+  max-width: 620px;
+  margin: 10px 0 0;
+  color: #526a63;
+  line-height: 1.5;
+}
+
+h2 {
+  margin-bottom: 4px;
+}
+
+h3 {
+  margin-bottom: 8px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(360px, 480px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.tour-form,
+.tour-card,
+.keypoint-editor,
+.review-form {
+  border: 1px solid #d9e4df;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(38, 70, 83, 0.07);
+}
+
+.tour-form,
+.tour-card {
+  padding: 22px;
+}
+
+.tour-form {
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: 18px;
+}
+
+.tour-list {
+  display: grid;
+  gap: 16px;
+}
+
+.catalog {
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  color: #264653;
+  font-weight: 700;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #c9d8d2;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fbfdfc;
+  color: #1f2d2b;
+  font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #2a9d8f;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.16);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.keypoint-editor {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  background: #f7fbf9;
+}
+
+.section-title span,
+.muted {
+  color: #6b7f78;
+}
+
+.compact {
+  margin-top: 4px;
+}
+
+.primary-button,
+.ghost-button,
+.icon-button {
+  min-height: 40px;
+  border-radius: 6px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primary-button {
+  background: #2a9d8f;
+  color: #ffffff;
+}
+
+.primary-button:disabled {
+  background: #9bbdb6;
+  cursor: wait;
+}
+
+.ghost-button {
+  background: #ffffff;
+  color: #1f6f63;
+  border-color: #b9d8d1;
+}
+
+.icon-button {
+  background: #fff3ed;
+  color: #b4532a;
+  border-color: #efc2aa;
+}
+
+.tour-card {
+  display: grid;
+  gap: 16px;
+  border-left: 4px solid #e76f51;
+}
+
+.tourist-card-head {
+  align-items: flex-start;
+}
+
+.tour-card h2,
+.tour-card h3 {
+  margin-bottom: 6px;
+}
+
+.tour-card p {
+  margin-bottom: 0;
+  color: #465b55;
+  line-height: 1.5;
+}
+
+.status {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #f2e8cf;
+  color: #7c5b12;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.status.published {
+  background: #d9f0e9;
+  color: #1d6b5c;
+}
+
+.meta-row,
+.tag-row,
+.card-actions {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.meta-row span {
+  color: #58716a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tag-row span {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #eaf4f1;
+  color: #2f6f64;
+  font-size: 13px;
+}
+
+.keypoints-preview {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.keypoints-preview div {
+  border: 1px solid #e3ece8;
+  border-left: 4px solid #e76f51;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdfc;
+}
+
+.reviews {
+  display: grid;
+  gap: 10px;
+}
+
+.reviews-panel {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #e3ece8;
+  padding-top: 14px;
+}
+
+.review {
+  border-radius: 8px;
+  background: #f7fbf9;
+  padding: 12px;
+  border: 1px solid #dfebe7;
+}
+
+.review-images,
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.review-images img,
+.image-preview-grid img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #dce9e5;
+}
+
+.review-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.review span,
+.review-form-head span {
+  color: #e08a18;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.review small {
+  display: block;
+  margin-top: 8px;
+  color: #789088;
+}
+
+.review-form {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  background: linear-gradient(180deg, #fffaf5, #ffffff);
+  border-color: #efd7c8;
+}
+
+.drop-zone {
+  display: grid;
+  gap: 6px;
+  place-items: center;
+  min-height: 112px;
+  border: 2px dashed #d8b49f;
+  border-radius: 8px;
+  background: #fff7f1;
+  color: #7b5747;
+  text-align: center;
+}
+
+.drop-zone.active {
+  border-color: #2a9d8f;
+  background: #e8f7f3;
+}
+
+.drop-zone span {
+  color: #8a6d60;
+  font-size: 13px;
+}
+
+.image-url-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.image-preview-grid div {
+  position: relative;
+}
+
+.image-preview-grid button {
+  width: 100%;
+  margin-top: 5px;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px;
+  background: #fff3ed;
+  color: #b4532a;
+  font-weight: 800;
+}
+
+.completed-review {
+  background: #f5fbf8;
+  border-color: #cfe6de;
+}
+
+.completed-review small {
+  color: #6b7f78;
+}
+
+.review-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-form-head h3 {
+  margin: 0;
+}
+
+.notice,
+.inline-notice {
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-weight: 700;
+}
+
+.inline-notice {
+  margin: 0;
+}
+
+.success {
+  background: #dff3ea;
+  color: #1d6b5c;
+}
+
+.error {
+  background: #ffe8df;
+  color: #9c3d1f;
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .tour-form {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header,
+  .section-title,
+  .tour-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-grid,
+  .catalog {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+}

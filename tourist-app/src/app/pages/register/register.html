@@ -1,56 +1,44 @@
-<h2>Register</h2>
-
-<form (ngSubmit)="onRegister()">
-
-  <div>
-    <label>Username</label>
-    <input
-      type="text"
-      [(ngModel)]="username"
-      name="username"
-    />
+<section class="auth-shell">
+  <div class="auth-copy">
+    <p class="eyebrow">Join TouristApp</p>
+    <h1>Create your travel role.</h1>
+    <p>Register as a tourist to review tours or as a guide to create routes and publish experiences.</p>
   </div>
 
-  <div>
-    <label>Email</label>
-    <input
-      type="email"
-      [(ngModel)]="email"
-      name="email"
-    />
-  </div>
+  <form class="auth-card" (ngSubmit)="onRegister()">
+    <h2>Register</h2>
 
-  <div>
-    <label>Password</label>
-    <input
-      type="password"
-      [(ngModel)]="password"
-      name="password"
-    />
-  </div>
+    <label>
+      Username
+      <input type="text" [(ngModel)]="username" name="username" />
+    </label>
 
-  <div>
-    <label>Role</label>
+    <label>
+      Email
+      <input type="email" [(ngModel)]="email" name="email" />
+    </label>
 
-    <select
-      [(ngModel)]="role"
-      name="role"
-    >
-      <option value="TOURIST">Tourist</option>
-      <option value="GUIDE">Guide</option>
-    </select>
-  </div>
+    <label>
+      Password
+      <input type="password" [(ngModel)]="password" name="password" />
+    </label>
 
-  <button type="submit">
-    Register
-  </button>
+    <label>
+      Role
+      <select [(ngModel)]="role" name="role">
+        <option value="TOURIST">Tourist</option>
+        <option value="GUIDE">Guide</option>
+      </select>
+    </label>
 
-</form>
+    <button type="submit">Register</button>
 
-@if (successMessage) {
-  <p>{{ successMessage }}</p>
-}
+    @if (successMessage) {
+      <p class="auth-success">{{ successMessage }}</p>
+    }
 
-@if (errorMessage) {
-  <p>{{ errorMessage }}</p>
-}
+    @if (errorMessage) {
+      <p class="auth-error">{{ errorMessage }}</p>
+    }
+  </form>
+</section>

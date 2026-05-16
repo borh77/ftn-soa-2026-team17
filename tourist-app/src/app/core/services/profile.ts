@@ -15,6 +15,14 @@ export interface UserProfile {
   motto: string;
 }
 
+export interface UpdateProfileRequest {
+  firstName: string;
+  lastName: string;
+  profileImage: string;
+  biography: string;
+  motto: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -28,6 +36,12 @@ export class ProfileService {
 
   getMyProfile(): Observable<UserProfile> {
     return this.http.get<UserProfile>(this.apiUrl, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  updateMyProfile(request: UpdateProfileRequest): Observable<UserProfile> {
+    return this.http.put<UserProfile>(this.apiUrl, request, {
       headers: this.getAuthHeaders()
     });
   }

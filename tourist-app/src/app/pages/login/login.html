@@ -1,27 +1,27 @@
-<h2>Login</h2>
-
-<form (ngSubmit)="onLogin()">
-  <div>
-    <label>Username</label>
-    <input
-      type="text"
-      [(ngModel)]="username"
-      name="username"
-    />
+<section class="auth-shell">
+  <div class="auth-copy">
+    <p class="eyebrow">Welcome back</p>
+    <h1>Continue your travel workspace.</h1>
+    <p>Log in to manage tours, simulate your position, and review published experiences.</p>
   </div>
 
-  <div>
-    <label>Password</label>
-    <input
-      type="password"
-      [(ngModel)]="password"
-      name="password"
-    />
-  </div>
+  <form class="auth-card" (ngSubmit)="onLogin()">
+    <h2>Login</h2>
 
-  <button type="submit">Login</button>
-</form>
+    <label>
+      Username
+      <input type="text" [(ngModel)]="username" name="username" />
+    </label>
 
-@if (errorMessage) {
-  <p>{{ errorMessage }}</p>
-}
+    <label>
+      Password
+      <input type="password" [(ngModel)]="password" name="password" />
+    </label>
+
+    <button type="submit">Login</button>
+
+    @if (errorMessage) {
+      <p class="auth-error">{{ errorMessage }}</p>
+    }
+  </form>
+</section>

@@ -43,7 +43,7 @@ public class AppUser {
     @Column(nullable = true)
     private String lastName;
 
-    @Column(nullable = true)
+    @Column(columnDefinition = "TEXT", nullable = true)
     private String profileImage;
 
     @Column(length = 2000, nullable = true)

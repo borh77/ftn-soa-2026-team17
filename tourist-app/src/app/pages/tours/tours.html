@@ -1,0 +1,377 @@
+<section class="tour-page">
+  <div class="page-header hero-strip">
+    <div>
+      <p class="eyebrow">Tours</p>
+      <h1>
+        @if (role === 'GUIDE') {
+          Guide workspace
+        } @else {
+          Published tours
+        }
+      </h1>
+      <p class="header-copy">
+        @if (role === 'GUIDE') {
+          Create routes, manage draft tours, and read traveller feedback.
+        } @else {
+          Browse available tours and leave a review after your visit.
+        }
+      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="loadTours()">Refresh</button>
+  </div>
+
+  @if (message) {
+    <p class="notice success">{{ message }}</p>
+  }
+
+  @if (errorMessage) {
+    <p class="notice error">{{ errorMessage }}</p>
+  }
+
+  @if (isLoading) {
+    <p class="muted">Loading tours...</p>
+  }
+
+  @if (role === 'GUIDE') {
+    <section class="workspace">
+      <form class="tour-form" (ngSubmit)="createTour()">
+        <div class="section-title">
+          <h2>Create tour</h2>
+          <span>Draft first, publish after review</span>
+        </div>
+
+        <label>
+          Name
+          <input type="text" name="name" [(ngModel)]="newTour.name" required />
+        </label>
+
+        <label>
+          Description
+          <textarea name="description" rows="4" [(ngModel)]="newTour.description" required></textarea>
+        </label>
+
+        <div class="form-grid">
+          <label>
+            Difficulty
+            <select name="difficulty" [(ngModel)]="newTour.difficulty">
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </label>
+
+          <label>
+            Tags
+            <input
+              type="text"
+              name="tags"
+              [(ngModel)]="newTour.tagsText"
+              placeholder="history, nature, family"
+            />
+          </label>
+        </div>
+
+        <div class="section-title compact">
+          <h3>Key points</h3>
+          <button class="ghost-button" type="button" (click)="addKeyPoint()">Add point</button>
+        </div>
+
+        @for (point of newTour.keyPoints; track $index) {
+          <div class="keypoint-editor">
+            <div class="keypoint-head">
+              <strong>Point {{ $index + 1 }}</strong>
+              <button class="icon-button" type="button" (click)="removeKeyPoint($index)">Remove</button>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                Name
+                <input type="text" [name]="'kp-name-' + $index" [(ngModel)]="point.name" required />
+              </label>
+
+              <label>
+                Image URL
+                <input type="url" [name]="'kp-image-' + $index" [(ngModel)]="point.imageUrl" />
+              </label>
+            </div>
+
+            <label>
+              Description
+              <textarea [name]="'kp-description-' + $index" rows="2" [(ngModel)]="point.description"></textarea>
+            </label>
+
+            <label>
+              Secret
+              <input type="text" [name]="'kp-secret-' + $index" [(ngModel)]="point.secretText" />
+            </label>
+
+            <div class="form-grid">
+              <label>
+                Latitude
+                <input type="number" step="0.000001" [name]="'kp-lat-' + $index" [(ngModel)]="point.latitude" />
+              </label>
+
+              <label>
+                Longitude
+                <input type="number" step="0.000001" [name]="'kp-lon-' + $index" [(ngModel)]="point.longitude" />
+              </label>
+            </div>
+          </div>
+        }
+
+        <button class="primary-button" type="submit">Save draft</button>
+      </form>
+
+      <section class="tour-list">
+        <div class="section-title">
+          <h2>My tours</h2>
+          <span>{{ guideTours.length }} total</span>
+        </div>
+
+        @for (tour of guideTours; track tour.id) {
+          <article class="tour-card">
+            <div class="tour-card-head">
+              <div>
+                <h3>{{ tour.name }}</h3>
+                <p>{{ tour.description }}</p>
+              </div>
+              <span class="status">{{ tour.status }}</span>
+            </div>
+
+            <div class="meta-row">
+              <span>{{ tour.difficulty }}</span>
+              <span>{{ tour.keyPoints.length }} key points</span>
+              <span>{{ tour.price || 0 }} RSD</span>
+            </div>
+
+            <div class="tag-row">
+              @for (tag of tour.tags; track tag) {
+                <span>{{ tag }}</span>
+              }
+            </div>
+
+            <div class="card-actions">
+              @if (tour.status === 'Draft') {
+                <button class="primary-button" type="button" (click)="publishTour(tour)">Publish</button>
+              }
+              <button class="ghost-button" type="button" (click)="toggleReviews(tour)">Reviews</button>
+            </div>
+
+            @if (reviewsByTourId[tour.id]) {
+              <div class="reviews">
+                @for (review of reviewsByTourId[tour.id]; track review.id) {
+                  <div class="review">
+                    <strong>{{ review.touristUsername }}</strong>
+              <span>
+                {{ stars(review.rating) }}
+                @if (review.id < 0) {
+                  · saving
+                }
+              </span>
+              <p>{{ review.comment }}</p>
+              <small>Visited {{ review.visitedAt | date: 'mediumDate' }}</small>
+            </div>
+          } @empty {
+            <p class="muted">No reviews yet.</p>
+                }
+              </div>
+            }
+          </article>
+        } @empty {
+          <p class="muted">You have not created a tour yet.</p>
+        }
+      </section>
+    </section>
+  } @else {
+    <section class="tour-list catalog">
+      @for (tour of activeTours; track tour.id) {
+        <article class="tour-card">
+          <div class="tour-card-head tourist-card-head">
+            <div>
+              <h2>{{ tour.name }}</h2>
+              <p>{{ tour.description }}</p>
+            </div>
+            <span class="status published">{{ tour.status }}</span>
+          </div>
+
+          <div class="meta-row">
+            <span>{{ tour.difficulty }}</span>
+            <span>{{ tour.keyPoints.length }} stops</span>
+            <span>{{ tour.price || 0 }} RSD</span>
+          </div>
+
+          <div class="tag-row">
+            @for (tag of tour.tags; track tag) {
+              <span>{{ tag }}</span>
+            }
+          </div>
+
+          <div class="keypoints-preview">
+            @for (point of tour.keyPoints; track point.ordinalNo) {
+              <div>
+                <strong>{{ point.ordinalNo }}. {{ point.name }}</strong>
+                <p>{{ point.description }}</p>
+              </div>
+            }
+          </div>
+
+          <div class="reviews-panel">
+            <div class="section-title compact">
+              <h3>Reviews</h3>
+              <span>{{ reviewsByTourId[tour.id]?.length || 0 }} total</span>
+            </div>
+
+            @if (!reviewsLoaded[tour.id]) {
+              <p class="muted">Loading reviews...</p>
+            } @else {
+              <div class="reviews">
+              @for (review of reviewsByTourId[tour.id]; track review.id) {
+                <div class="review">
+                  <div class="review-head">
+                    <strong>{{ review.touristUsername }}</strong>
+                    <span>
+                      {{ stars(review.rating) }}
+                      @if (review.id < 0) {
+                        · saving
+                      }
+                    </span>
+                  </div>
+                  <p>{{ review.comment }}</p>
+                  <small>Visited {{ review.visitedAt | date: 'mediumDate' }}</small>
+                  @if (review.images.length) {
+                    <div class="review-images">
+                      @for (image of review.images; track image) {
+                        <img [src]="image" alt="Review image" />
+                      }
+                    </div>
+                  }
+                </div>
+              } @empty {
+                <p class="muted">No reviews yet.</p>
+              }
+              </div>
+            }
+            </div>
+
+          @if (role === 'TOURIST') {
+            @if (!reviewsLoaded[tour.id]) {
+              <div class="review-form completed-review">
+                <div class="review-form-head">
+                  <h3>Reviews</h3>
+                  <span>Loading</span>
+                </div>
+                <p class="muted">Checking whether you already reviewed this tour...</p>
+              </div>
+            } @else if (hasMyReview(tour.id)) {
+              <div class="review-form completed-review">
+                <div class="review-form-head">
+                  <h3>Your review</h3>
+                  <span>
+                    {{ myReview(tour.id)?.rating }}/5
+                    @if (isReviewPending(tour.id)) {
+                      · saving
+                    }
+                  </span>
+                </div>
+                <p>{{ myReview(tour.id)?.comment }}</p>
+                <small>Visited {{ myReview(tour.id)?.visitedAt | date: 'mediumDate' }}</small>
+                @if (reviewMessages[tour.id]) {
+                  <p class="inline-notice success">{{ reviewMessages[tour.id] }}</p>
+                }
+                <p class="inline-notice success">You have already reviewed this tour.</p>
+              </div>
+            } @else {
+              <form class="review-form" (ngSubmit)="createReview(tour)">
+                <div class="review-form-head">
+                  <h3>Add review</h3>
+                  <span>{{ getReviewForm(tour.id).rating }}/5</span>
+                </div>
+
+                <div class="form-grid">
+                  <label>
+                    Rating
+                    <select [name]="'rating-' + tour.id" [(ngModel)]="getReviewForm(tour.id).rating">
+                      <option [ngValue]="5">5</option>
+                      <option [ngValue]="4">4</option>
+                      <option [ngValue]="3">3</option>
+                      <option [ngValue]="2">2</option>
+                      <option [ngValue]="1">1</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Visit date
+                    <input
+                      type="datetime-local"
+                      [name]="'visitedAt-' + tour.id"
+                      [(ngModel)]="getReviewForm(tour.id).visitedAt"
+                    />
+                  </label>
+                </div>
+
+                <label>
+                  Comment
+                  <textarea [name]="'comment-' + tour.id" rows="3" [(ngModel)]="getReviewForm(tour.id).comment"></textarea>
+                </label>
+
+                <div
+                  class="drop-zone"
+                  [class.active]="imageDropActive[tour.id]"
+                  (dragover)="onImageDragOver($event, tour.id)"
+                  (dragleave)="onImageDragLeave($event, tour.id)"
+                  (drop)="onImageDrop($event, tour.id)"
+                >
+                  <strong>Drag images here</strong>
+                  <span>Drop a small image file or an image URL.</span>
+                </div>
+
+                <div class="image-url-row">
+                  <label>
+                    Image URL
+                    <input
+                      type="text"
+                      [name]="'image-url-' + tour.id"
+                      [(ngModel)]="getReviewForm(tour.id).imageUrlInput"
+                      placeholder="https://example.com/photo.jpg"
+                    />
+                  </label>
+                  <button class="ghost-button" type="button" (click)="addImageUrl(tour.id)">Add</button>
+                </div>
+
+                @if (getReviewForm(tour.id).images.length) {
+                  <div class="image-preview-grid">
+                    @for (image of getReviewForm(tour.id).images; track $index) {
+                      <div>
+                        <img [src]="image" alt="Selected review image" />
+                        <button type="button" (click)="removeReviewImage(tour.id, $index)">Remove</button>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <button class="primary-button" type="submit" [disabled]="reviewSubmitting[tour.id]">
+                  @if (reviewSubmitting[tour.id]) {
+                    Saving...
+                  } @else {
+                    Submit review
+                  }
+                </button>
+
+                @if (reviewMessages[tour.id]) {
+                  <p class="inline-notice success">{{ reviewMessages[tour.id] }}</p>
+                }
+
+                @if (reviewErrors[tour.id]) {
+                  <p class="inline-notice error">{{ reviewErrors[tour.id] }}</p>
+                }
+              </form>
+            }
+          }
+        </article>
+      } @empty {
+        <p class="muted">No published tours yet.</p>
+      }
+    </section>
+  }
+</section>

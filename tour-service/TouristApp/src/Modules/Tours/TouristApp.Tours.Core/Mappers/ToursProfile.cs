@@ -32,6 +32,9 @@ public class ToursProfile : Profile
                 src.Longitude
             ));
 
+        CreateMap<TourReview, TourReviewDto>()
+            .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images.ToList()));
+
         // Intentionally do not map KeyPointDto -> KeyPoint globally because
         // server assigns ordinals and construction is handled in service layer.
     }
