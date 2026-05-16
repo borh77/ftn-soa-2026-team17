@@ -77,11 +77,22 @@
           <button class="ghost-button" type="button" (click)="addKeyPoint()">Add point</button>
         </div>
 
+        <div class="map-editor">
+          <div class="map-copy">
+            <strong>Draw the route on the map</strong>
+            <span>Select a point below, then click the map to set its position.</span>
+          </div>
+          <div id="draft-keypoint-map" class="route-map"></div>
+        </div>
+
         @for (point of newTour.keyPoints; track $index) {
-          <div class="keypoint-editor">
+          <div class="keypoint-editor" [class.active]="selectedDraftPointIndex === $index">
             <div class="keypoint-head">
               <strong>Point {{ $index + 1 }}</strong>
-              <button class="icon-button" type="button" (click)="removeKeyPoint($index)">Remove</button>
+              <div class="keypoint-actions">
+                <button class="ghost-button small" type="button" (click)="selectDraftPoint($index)">Select on map</button>
+                <button class="icon-button small" type="button" (click)="removeKeyPoint($index)">Remove</button>
+              </div>
             </div>
 
             <div class="form-grid">
@@ -94,6 +105,22 @@
                 Image URL
                 <input type="url" [name]="'kp-image-' + $index" [(ngModel)]="point.imageUrl" />
               </label>
+            </div>
+
+            <div
+              class="keypoint-drop-zone"
+              [class.active]="keyPointImageDropActive['draft-' + $index]"
+              (dragover)="onKeyPointImageDragOver($event, 'draft-' + $index)"
+              (dragleave)="onKeyPointImageDragLeave($event, 'draft-' + $index)"
+              (drop)="onDraftKeyPointImageDrop($event, point, 'draft-' + $index)"
+            >
+              @if (point.imageUrl) {
+                <img [src]="point.imageUrl" alt="Key point preview" />
+              }
+              <div>
+                <strong>Drop point image</strong>
+                <span>Image file or image URL</span>
+              </div>
             </div>
 
             <label>
@@ -109,12 +136,12 @@
             <div class="form-grid">
               <label>
                 Latitude
-                <input type="number" step="0.000001" [name]="'kp-lat-' + $index" [(ngModel)]="point.latitude" />
+                <input type="number" step="0.000001" [name]="'kp-lat-' + $index" [(ngModel)]="point.latitude" (ngModelChange)="onDraftCoordinateChange()" />
               </label>
 
               <label>
                 Longitude
-                <input type="number" step="0.000001" [name]="'kp-lon-' + $index" [(ngModel)]="point.longitude" />
+                <input type="number" step="0.000001" [name]="'kp-lon-' + $index" [(ngModel)]="point.longitude" (ngModelChange)="onDraftCoordinateChange()" />
               </label>
             </div>
           </div>
@@ -151,6 +178,121 @@
               }
             </div>
 
+            <div class="map-editor compact-map">
+              <div class="map-copy">
+                <strong>Route map</strong>
+                <span>Markers follow key point order. Click the map to start adding a new point.</span>
+              </div>
+              <div [id]="'tour-map-' + tour.id" class="route-map small-map"></div>
+            </div>
+
+            <div class="keypoint-manager">
+              <div class="section-title compact">
+                <h3>Key points</h3>
+                @if (tour.status === 'Draft') {
+                  <button class="ghost-button" type="button" (click)="startAddKeyPoint(tour)">Add on map</button>
+                } @else {
+                  <span>Published route is locked</span>
+                }
+              </div>
+
+              @if (keyPointMessages[tour.id]) {
+                <p class="inline-notice success">{{ keyPointMessages[tour.id] }}</p>
+              }
+
+              @if (keyPointErrors[tour.id]) {
+                <p class="inline-notice error">{{ keyPointErrors[tour.id] }}</p>
+              }
+
+              @if (tour.status === 'Draft' && keyPointEditor(tour.id); as editor) {
+                <div class="keypoint-editor active">
+                  <div class="keypoint-head">
+                    <strong>
+                      @if (editor.mode === 'add') {
+                        New key point
+                      } @else {
+                        Edit point {{ editor.originalOrdinalNo }}
+                      }
+                    </strong>
+                    <button class="icon-button small" type="button" (click)="cancelKeyPointEdit(tour.id)">Cancel</button>
+                  </div>
+
+                  <div class="form-grid">
+                    <label>
+                      Name
+                      <input type="text" [name]="'existing-kp-name-' + tour.id" [(ngModel)]="editor.point.name" />
+                    </label>
+
+                    <label>
+                      Image URL
+                      <input type="text" [name]="'existing-kp-image-' + tour.id" [(ngModel)]="editor.point.imageUrl" />
+                    </label>
+                  </div>
+
+                  <div
+                    class="keypoint-drop-zone"
+                    [class.active]="keyPointImageDropActive['existing-' + tour.id]"
+                    (dragover)="onKeyPointImageDragOver($event, 'existing-' + tour.id)"
+                    (dragleave)="onKeyPointImageDragLeave($event, 'existing-' + tour.id)"
+                    (drop)="onExistingKeyPointImageDrop($event, editor, 'existing-' + tour.id)"
+                  >
+                    @if (editor.point.imageUrl) {
+                      <img [src]="editor.point.imageUrl" alt="Key point preview" />
+                    }
+                    <div>
+                      <strong>Drop point image</strong>
+                      <span>Image file or image URL</span>
+                    </div>
+                  </div>
+
+                  <label>
+                    Description
+                    <textarea [name]="'existing-kp-description-' + tour.id" rows="2" [(ngModel)]="editor.point.description"></textarea>
+                  </label>
+
+                  <label>
+                    Secret
+                    <input type="text" [name]="'existing-kp-secret-' + tour.id" [(ngModel)]="editor.point.secretText" />
+                  </label>
+
+                  <div class="form-grid">
+                    <label>
+                      Latitude
+                      <input type="number" step="0.000001" [name]="'existing-kp-lat-' + tour.id" [(ngModel)]="editor.point.latitude" (ngModelChange)="onDraftCoordinateChange()" />
+                    </label>
+
+                    <label>
+                      Longitude
+                      <input type="number" step="0.000001" [name]="'existing-kp-lon-' + tour.id" [(ngModel)]="editor.point.longitude" (ngModelChange)="onDraftCoordinateChange()" />
+                    </label>
+                  </div>
+
+                  <button class="primary-button" type="button" (click)="saveKeyPoint(tour)">Save key point</button>
+                </div>
+              }
+
+              <div class="keypoint-list">
+                @for (point of tour.keyPoints; track point.ordinalNo) {
+                  <div class="keypoint-row">
+                    @if (point.imageUrl) {
+                      <img [src]="point.imageUrl" alt="Key point image" />
+                    }
+                    <div>
+                      <strong>{{ point.ordinalNo }}. {{ point.name }}</strong>
+                      <p>{{ point.description }}</p>
+                      <small>{{ point.latitude }}, {{ point.longitude }}</small>
+                    </div>
+                    @if (tour.status === 'Draft') {
+                      <div class="keypoint-row-actions">
+                        <button class="ghost-button small" type="button" (click)="startEditKeyPoint(tour, point)">Edit</button>
+                        <button class="icon-button small" type="button" (click)="deleteKeyPoint(tour, point)">Delete</button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
             <div class="card-actions">
               @if (tour.status === 'Draft') {
                 <button class="primary-button" type="button" (click)="publishTour(tour)">Publish</button>
@@ -166,7 +308,7 @@
               <span>
                 {{ stars(review.rating) }}
                 @if (review.id < 0) {
-                  · saving
+                  - saving
                 }
               </span>
               <p>{{ review.comment }}</p>
@@ -233,7 +375,7 @@
                     <span>
                       {{ stars(review.rating) }}
                       @if (review.id < 0) {
-                        · saving
+                        - saving
                       }
                     </span>
                   </div>
@@ -270,7 +412,7 @@
                   <span>
                     {{ myReview(tour.id)?.rating }}/5
                     @if (isReviewPending(tour.id)) {
-                      · saving
+                      - saving
                     }
                   </span>
                 </div>

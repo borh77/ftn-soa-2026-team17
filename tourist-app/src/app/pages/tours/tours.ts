@@ -1,6 +1,14 @@
+import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  Inject,
+  OnDestroy,
+  OnInit,
+  PLATFORM_ID
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth';
@@ -14,13 +22,19 @@ interface ReviewForm {
   images: string[];
 }
 
+interface ExistingKeyPointEditor {
+  mode: 'add' | 'edit';
+  originalOrdinalNo?: number;
+  point: KeyPoint;
+}
+
 @Component({
   selector: 'app-tours',
   imports: [CommonModule, FormsModule],
   templateUrl: './tours.html',
   styleUrl: './tours.css'
 })
-export class Tours implements OnInit {
+export class Tours implements OnInit, AfterViewInit, OnDestroy {
   guideTours: Tour[] = [];
   activeTours: Tour[] = [];
   reviewsByTourId: Record<number, TourReview[]> = {};
@@ -32,9 +46,18 @@ export class Tours implements OnInit {
   imageDropActive: Record<number, boolean> = {};
   pendingReviewIds: Record<number, number> = {};
 
+  selectedDraftPointIndex = 0;
+  activeKeyPointEditors: Record<number, ExistingKeyPointEditor> = {};
+  keyPointMessages: Record<number, string> = {};
+  keyPointErrors: Record<number, string> = {};
+  keyPointImageDropActive: Record<string, boolean> = {};
+
+  currentRole: string | null = null;
   isLoading = false;
   message = '';
   errorMessage = '';
+
+  private readonly defaultCenter: [number, number] = [45.2526, 19.8622];
 
   newTour = {
     name: '',
@@ -47,24 +70,61 @@ export class Tours implements OnInit {
     ]
   };
 
+  private readonly isBrowser: boolean;
+  private leaflet: any;
+  private maps: Record<string, any> = {};
+  private mapLayers: Record<string, any> = {};
+
   constructor(
     public authService: AuthService,
-    private tourService: TourService
-  ) {}
+    private tourService: TourService,
+    @Inject(PLATFORM_ID) platformId: object
+  ) {
+    this.isBrowser = isPlatformBrowser(platformId);
+  }
 
   ngOnInit(): void {
-    this.loadTours();
+    this.currentRole = this.authService.getUserRole();
+    this.isLoading = true;
+    setTimeout(() => this.loadTours(), 0);
+  }
+
+  async ngAfterViewInit(): Promise<void> {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    this.leaflet = await import('leaflet');
+    delete (this.leaflet.Icon.Default.prototype as any)._getIconUrl;
+    this.leaflet.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+    });
+
+    this.scheduleMapRender();
+  }
+
+  ngOnDestroy(): void {
+    Object.values(this.maps).forEach(map => map.remove());
   }
 
   get role(): string | null {
-    return this.authService.getUserRole();
+    return this.currentRole;
   }
 
   loadTours(): void {
     this.message = '';
     this.errorMessage = '';
+    this.currentRole = this.authService.getUserRole();
 
-    if (this.role === 'GUIDE') {
+    if (!this.currentRole) {
+      this.isLoading = false;
+      this.errorMessage = 'Uloguj se da bi videla ture.';
+      return;
+    }
+
+    if (this.currentRole === 'GUIDE') {
       this.loadGuideTours();
       return;
     }
@@ -124,6 +184,8 @@ export class Tours implements OnInit {
 
   addKeyPoint(): void {
     this.newTour.keyPoints.push(this.emptyKeyPoint(this.newTour.keyPoints.length + 1));
+    this.selectedDraftPointIndex = this.newTour.keyPoints.length - 1;
+    this.scheduleMapRender();
   }
 
   removeKeyPoint(index: number): void {
@@ -133,6 +195,18 @@ export class Tours implements OnInit {
     }
 
     this.newTour.keyPoints.splice(index, 1);
+    this.newTour.keyPoints.forEach((point, pointIndex) => point.ordinalNo = pointIndex + 1);
+    this.selectedDraftPointIndex = Math.min(this.selectedDraftPointIndex, this.newTour.keyPoints.length - 1);
+    this.scheduleMapRender();
+  }
+
+  selectDraftPoint(index: number): void {
+    this.selectedDraftPointIndex = index;
+    this.scheduleMapRender();
+  }
+
+  onDraftCoordinateChange(): void {
+    this.scheduleMapRender();
   }
 
   toggleReviews(tour: Tour): void {
@@ -142,6 +216,89 @@ export class Tours implements OnInit {
     }
 
     this.loadReviews(tour.id);
+  }
+
+  startAddKeyPoint(tour: Tour): void {
+    const lastPoint = tour.keyPoints[tour.keyPoints.length - 1];
+    this.keyPointMessages[tour.id] = 'Klikni na mapu da izaberes poziciju nove tacke.';
+    this.keyPointErrors[tour.id] = '';
+    this.activeKeyPointEditors[tour.id] = {
+      mode: 'add',
+      point: {
+        ...this.emptyKeyPoint(tour.keyPoints.length + 1),
+        latitude: lastPoint?.latitude ?? this.defaultCenter[0],
+        longitude: lastPoint?.longitude ?? this.defaultCenter[1]
+      }
+    };
+    this.scheduleMapRender();
+  }
+
+  startEditKeyPoint(tour: Tour, point: KeyPoint): void {
+    this.keyPointMessages[tour.id] = 'Klikni na mapu da promenis koordinatu tacke.';
+    this.keyPointErrors[tour.id] = '';
+    this.activeKeyPointEditors[tour.id] = {
+      mode: 'edit',
+      originalOrdinalNo: point.ordinalNo ?? 1,
+      point: { ...point }
+    };
+    this.scheduleMapRender();
+  }
+
+  cancelKeyPointEdit(tourId: number): void {
+    delete this.activeKeyPointEditors[tourId];
+    this.keyPointMessages[tourId] = '';
+    this.keyPointErrors[tourId] = '';
+    this.scheduleMapRender();
+  }
+
+  saveKeyPoint(tour: Tour): void {
+    const editor = this.activeKeyPointEditors[tour.id];
+
+    if (!editor) {
+      return;
+    }
+
+    this.keyPointErrors[tour.id] = '';
+    const point = this.normalizeKeyPoint(editor.point);
+
+    const request = editor.mode === 'add'
+      ? this.tourService.addKeyPoint(tour.id, point)
+      : this.tourService.updateKeyPoint(tour.id, editor.originalOrdinalNo ?? point.ordinalNo ?? 1, point);
+
+    request.subscribe({
+      next: () => {
+        this.keyPointMessages[tour.id] = editor.mode === 'add'
+          ? 'Kljucna tacka je dodata.'
+          : 'Kljucna tacka je izmenjena.';
+        delete this.activeKeyPointEditors[tour.id];
+        this.loadGuideTours();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.keyPointErrors[tour.id] = this.backendDetail(error) || 'Kljucna tacka nije sacuvana. Proveri naziv, opis, sliku i koordinate.';
+      }
+    });
+  }
+
+  deleteKeyPoint(tour: Tour, point: KeyPoint): void {
+    if (!point.ordinalNo) {
+      return;
+    }
+
+    this.keyPointErrors[tour.id] = '';
+
+    this.tourService.deleteKeyPoint(tour.id, point.ordinalNo).subscribe({
+      next: () => {
+        this.keyPointMessages[tour.id] = 'Kljucna tacka je obrisana.';
+        this.loadGuideTours();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.keyPointErrors[tour.id] = this.backendDetail(error) || 'Kljucna tacka nije obrisana.';
+      }
+    });
+  }
+
+  keyPointEditor(tourId: number): ExistingKeyPointEditor | undefined {
+    return this.activeKeyPointEditors[tourId];
   }
 
   createReview(tour: Tour): void {
@@ -267,25 +424,35 @@ export class Tours implements OnInit {
     this.reviewErrors[tourId] = '';
 
     const form = this.getReviewForm(tourId);
-    const files = Array.from(event.dataTransfer?.files ?? []);
-    const droppedText = event.dataTransfer?.getData('text/plain') ?? '';
+    this.readImageDrop(event, image => {
+      form.images = [...form.images, image];
+    }, text => {
+      form.images = [...form.images, ...this.splitLinesOrCommas(text)];
+    }, () => {
+      this.reviewErrors[tourId] = 'Ne mogu da obradim ovu sliku. Probaj drugu sliku ili dodaj URL.';
+    });
+  }
 
-    if (files.length === 0 && droppedText.trim()) {
-      form.images = [...form.images, ...this.splitLinesOrCommas(droppedText)];
-      return;
-    }
+  onKeyPointImageDragOver(event: DragEvent, key: string): void {
+    event.preventDefault();
+    this.keyPointImageDropActive[key] = true;
+  }
 
-    files
-      .filter(file => file.type.startsWith('image/'))
-      .forEach(file => {
-        this.resizeImage(file)
-          .then(image => {
-            form.images = [...form.images, image];
-          })
-          .catch(() => {
-            this.reviewErrors[tourId] = 'Ne mogu da obradim ovu sliku. Probaj drugu sliku ili dodaj URL.';
-          });
-      });
+  onKeyPointImageDragLeave(event: DragEvent, key: string): void {
+    event.preventDefault();
+    this.keyPointImageDropActive[key] = false;
+  }
+
+  onDraftKeyPointImageDrop(event: DragEvent, point: KeyPoint, key: string): void {
+    event.preventDefault();
+    this.keyPointImageDropActive[key] = false;
+    this.readImageDrop(event, image => point.imageUrl = image, text => point.imageUrl = text.trim());
+  }
+
+  onExistingKeyPointImageDrop(event: DragEvent, editor: ExistingKeyPointEditor, key: string): void {
+    event.preventDefault();
+    this.keyPointImageDropActive[key] = false;
+    this.readImageDrop(event, image => editor.point.imageUrl = image, text => editor.point.imageUrl = text.trim());
   }
 
   hasMyReview(tourId: number): boolean {
@@ -309,6 +476,7 @@ export class Tours implements OnInit {
       next: response => {
         this.guideTours = response.results;
         this.isLoading = false;
+        this.scheduleMapRender();
       },
       error: () => {
         this.errorMessage = 'Ne mogu da ucitam tvoje ture. Proveri da li je backend podignut.';
@@ -375,8 +543,165 @@ export class Tours implements OnInit {
     });
   }
 
+  private renderAllMaps(): void {
+    if (!this.leaflet || this.role !== 'GUIDE') {
+      return;
+    }
+
+    this.renderRouteMap(
+      'draft',
+      'draft-keypoint-map',
+      this.newTour.keyPoints,
+      (latitude, longitude) => {
+        const point = this.newTour.keyPoints[this.selectedDraftPointIndex];
+        if (!point) {
+          return;
+        }
+
+        point.latitude = Number(latitude.toFixed(6));
+        point.longitude = Number(longitude.toFixed(6));
+        this.renderAllMaps();
+      },
+      this.newTour.keyPoints[this.selectedDraftPointIndex]?.ordinalNo
+    );
+
+    this.guideTours.forEach(tour => {
+      const editor = this.activeKeyPointEditors[tour.id];
+      const visiblePoints = this.visibleRoutePoints(tour);
+      const activeOrdinalNo = editor?.mode === 'edit'
+        ? editor.originalOrdinalNo
+        : editor?.point.ordinalNo;
+
+      this.renderRouteMap(
+        `tour-${tour.id}`,
+        `tour-map-${tour.id}`,
+        visiblePoints,
+        (latitude, longitude) => {
+          if (tour.status !== 'Draft') {
+            this.keyPointMessages[tour.id] = 'Objavljena tura je zakljucana za izmene.';
+            return;
+          }
+
+          if (!this.activeKeyPointEditors[tour.id]) {
+            this.startAddKeyPoint(tour);
+          }
+
+          const activeEditor = this.activeKeyPointEditors[tour.id];
+          activeEditor.point.latitude = Number(latitude.toFixed(6));
+          activeEditor.point.longitude = Number(longitude.toFixed(6));
+          this.keyPointMessages[tour.id] = 'Pozicija je izabrana. Popuni podatke i sacuvaj tacku.';
+          this.renderAllMaps();
+        },
+        activeOrdinalNo
+      );
+    });
+  }
+
+  private visibleRoutePoints(tour: Tour): KeyPoint[] {
+    const editor = this.activeKeyPointEditors[tour.id];
+
+    if (!editor) {
+      return tour.keyPoints;
+    }
+
+    if (editor.mode === 'add') {
+      return [
+        ...tour.keyPoints,
+        {
+          ...editor.point,
+          ordinalNo: editor.point.ordinalNo ?? tour.keyPoints.length + 1
+        }
+      ];
+    }
+
+    return tour.keyPoints.map(point =>
+      point.ordinalNo === editor.originalOrdinalNo
+        ? { ...editor.point, ordinalNo: editor.originalOrdinalNo }
+        : point
+    );
+  }
+
+  private renderRouteMap(
+    key: string,
+    elementId: string,
+    points: KeyPoint[],
+    onMapClick: (latitude: number, longitude: number) => void,
+    activeOrdinalNo?: number | null
+  ): void {
+    const element = document.getElementById(elementId);
+
+    if (!element) {
+      return;
+    }
+
+    const validPoints = points
+      .filter(point => this.hasValidCoordinates(point))
+      .sort((a, b) => (a.ordinalNo ?? 0) - (b.ordinalNo ?? 0));
+
+    if (!this.maps[key]) {
+      this.maps[key] = this.leaflet.map(element).setView(this.defaultCenter, 13);
+      this.leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(this.maps[key]);
+      this.mapLayers[key] = this.leaflet.layerGroup().addTo(this.maps[key]);
+    }
+
+    const map = this.maps[key];
+    const layer = this.mapLayers[key];
+    layer.clearLayers();
+    map.off('click');
+    map.on('click', (event: any) => onMapClick(event.latlng.lat, event.latlng.lng));
+
+    const latLngs = validPoints.map(point => [point.latitude, point.longitude]);
+
+    validPoints.forEach((point, index) => {
+      const isActivePoint = activeOrdinalNo != null && point.ordinalNo === activeOrdinalNo;
+      const marker = this.leaflet.marker([point.latitude, point.longitude], {
+        draggable: isActivePoint
+      })
+        .bindPopup(`<strong>${point.ordinalNo ?? index + 1}. ${this.escapeHtml(point.name || 'Nova tacka')}</strong>`);
+
+      if (isActivePoint) {
+        marker.bindTooltip('Drag or click map to move', { permanent: true, direction: 'top' });
+        marker.on('dragend', (event: any) => {
+          const position = event.target.getLatLng();
+          onMapClick(position.lat, position.lng);
+        });
+      }
+
+      marker.addTo(layer);
+    });
+
+    if (latLngs.length >= 2) {
+      this.leaflet.polyline(latLngs, {
+        color: '#e76f51',
+        weight: 4,
+        opacity: 0.92
+      }).addTo(layer);
+    }
+
+    if (latLngs.length > 0) {
+      map.fitBounds(this.leaflet.latLngBounds(latLngs), {
+        padding: [24, 24],
+        maxZoom: 15
+      });
+    } else {
+      map.setView(this.defaultCenter, 13);
+    }
+
+    setTimeout(() => map.invalidateSize(), 0);
+  }
+
+  private scheduleMapRender(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    setTimeout(() => this.renderAllMaps(), 0);
+  }
+
   private reviewErrorMessage(error: HttpErrorResponse): string {
-    const detail = typeof error.error?.detail === 'string' ? error.error.detail : '';
+    const detail = this.backendDetail(error);
 
     if (detail.includes('already reviewed')) {
       return 'Vec si ostavila recenziju za ovu turu. Ucitavam je sada.';
@@ -390,8 +715,7 @@ export class Tours implements OnInit {
   }
 
   private isAlreadyReviewedError(error: HttpErrorResponse): boolean {
-    const detail = typeof error.error?.detail === 'string' ? error.error.detail : '';
-    return detail.includes('already reviewed');
+    return this.backendDetail(error).includes('already reviewed');
   }
 
   private resetTourForm(): void {
@@ -405,6 +729,8 @@ export class Tours implements OnInit {
         this.emptyKeyPoint(2)
       ]
     };
+    this.selectedDraftPointIndex = 0;
+    this.scheduleMapRender();
   }
 
   private defaultReviewForm(): ReviewForm {
@@ -424,8 +750,20 @@ export class Tours implements OnInit {
       description: '',
       secretText: '',
       imageUrl: '',
-      latitude: 45.2526,
-      longitude: 19.8622
+      latitude: this.defaultCenter[0],
+      longitude: this.defaultCenter[1]
+    };
+  }
+
+  private normalizeKeyPoint(point: KeyPoint): KeyPoint {
+    return {
+      ordinalNo: point.ordinalNo,
+      name: point.name.trim(),
+      description: point.description.trim(),
+      secretText: point.secretText.trim(),
+      imageUrl: point.imageUrl.trim(),
+      latitude: Number(point.latitude),
+      longitude: Number(point.longitude)
     };
   }
 
@@ -434,6 +772,29 @@ export class Tours implements OnInit {
       .split(/[\n,]/)
       .map(item => item.trim())
       .filter(Boolean);
+  }
+
+  private readImageDrop(
+    event: DragEvent,
+    onImage: (image: string) => void,
+    onText: (text: string) => void,
+    onError?: () => void
+  ): void {
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    const droppedText = event.dataTransfer?.getData('text/plain') ?? '';
+
+    if (files.length === 0 && droppedText.trim()) {
+      onText(droppedText);
+      return;
+    }
+
+    files
+      .filter(file => file.type.startsWith('image/'))
+      .forEach(file => {
+        this.resizeImage(file)
+          .then(onImage)
+          .catch(() => onError?.());
+      });
   }
 
   private resizeImage(file: File): Promise<string> {
@@ -468,5 +829,22 @@ export class Tours implements OnInit {
 
       reader.readAsDataURL(file);
     });
+  }
+
+  private hasValidCoordinates(point: KeyPoint): boolean {
+    return Number.isFinite(Number(point.latitude)) && Number.isFinite(Number(point.longitude));
+  }
+
+  private backendDetail(error: HttpErrorResponse): string {
+    return typeof error.error?.detail === 'string' ? error.error.detail : '';
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 }

@@ -89,6 +89,24 @@ export class TourService {
     });
   }
 
+  addKeyPoint(tourId: number, keyPoint: KeyPoint): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/keypoints`, keyPoint, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  updateKeyPoint(tourId: number, ordinalNo: number, keyPoint: KeyPoint): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${tourId}/keypoints/${ordinalNo}`, keyPoint, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  deleteKeyPoint(tourId: number, ordinalNo: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${tourId}/keypoints/${ordinalNo}`, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
   publishTour(tourId: number): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/${tourId}/publish`, null, {
       headers: this.getAuthHeaders()
