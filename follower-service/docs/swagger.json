@@ -1,4 +1,7 @@
 {
+    "schemes": [
+        "http"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "API for following users and recommending profiles using Neo4j graph database.",
@@ -7,7 +10,7 @@
         "version": "1.0"
     },
     "host": "localhost:8082",
-    "basePath": "/",
+    "basePath": "/follower",
     "paths": {
         "/api/followers/can-comment": {
             "get": {

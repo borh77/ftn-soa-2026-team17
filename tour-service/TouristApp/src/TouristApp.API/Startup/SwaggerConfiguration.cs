@@ -10,8 +10,20 @@ public static class SwaggerConfiguration
         {
             setup.SwaggerDoc("v1", new OpenApiInfo
             {
-                Title = "TouristApp",
+                Title = "Tour Service",
                 Version = "v1"
+            });
+
+            setup.AddServer(new OpenApiServer
+            {
+                Url = "http://localhost:8082/tours",
+                Description = "Gateway"
+            });
+
+            setup.AddServer(new OpenApiServer
+            {
+                Url = "http://localhost:8083",
+                Description = "Direct tour service"
             });
 
             setup.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -35,10 +47,11 @@ public static class SwaggerConfiguration
                             Id = "Bearer"
                         }
                     },
-                    new string[]{}
+                    Array.Empty<string>()
                 }
             });
         });
+
         return services;
     }
 }

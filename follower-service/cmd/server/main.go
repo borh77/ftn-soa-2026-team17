@@ -22,7 +22,8 @@ import (
 // @version 1.0
 // @description API for following users and recommending profiles using Neo4j graph database.
 // @host localhost:8082
-// @BasePath /
+// @BasePath /follower
+// @schemes http
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization

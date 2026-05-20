@@ -1,4 +1,4 @@
-basePath: /
+basePath: /follower
 definitions:
   model.FollowRequest:
     properties:
@@ -177,6 +177,8 @@ paths:
       summary: Unfollow user
       tags:
       - followers
+schemes:
+- http
 securityDefinitions:
   BearerAuth:
     in: header

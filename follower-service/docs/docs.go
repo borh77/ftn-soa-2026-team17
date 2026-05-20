@@ -291,8 +291,8 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8082",
-	BasePath:         "/",
-	Schemes:          []string{},
+	BasePath:         "/follower",
+	Schemes:          []string{"http"},
 	Title:            "Follower Service API",
 	Description:      "API for following users and recommending profiles using Neo4j graph database.",
 	InfoInstanceName: "swagger",

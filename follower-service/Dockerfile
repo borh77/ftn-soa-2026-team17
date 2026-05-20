@@ -15,6 +15,6 @@ WORKDIR /app
 
 COPY --from=build /app/follower-service .
 
-EXPOSE 8082
+EXPOSE 8084
 
 CMD ["./follower-service"]
