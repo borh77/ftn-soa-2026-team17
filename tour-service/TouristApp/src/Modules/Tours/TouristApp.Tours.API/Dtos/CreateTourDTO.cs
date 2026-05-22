@@ -6,5 +6,6 @@ public record CreateTourDto(
     string Difficulty,
     List<string> Tags,
     List<TourTravelTimeDto>? TravelTimes = null,
-    List<KeyPointDto>? KeyPoints = null
+    List<KeyPointDto>? KeyPoints = null,
+    decimal? RouteLengthKm = null
 );

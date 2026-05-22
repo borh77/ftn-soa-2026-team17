@@ -52,5 +52,7 @@ public class TourQueryTests : BaseToursIntegrationTest
         tours.Results.All(t => t.Status == "Published").ShouldBeTrue();
         tours.Results.All(t => t.KeyPoints.Count <= 1).ShouldBeTrue();
         tours.Results.Any(t => t.Name == "Dunavska staza" && t.KeyPoints.Count == 1).ShouldBeTrue();
+        tours.Results.All(t => t.RouteLengthKm >= 0m).ShouldBeTrue();
+        tours.Results.Any(t => t.Name == "Dunavska staza" && t.RouteLengthKm > 0m).ShouldBeTrue();
     }
 }

@@ -64,6 +64,9 @@ public class TourService : ITourService
             }
         }
 
+        if (dto.RouteLengthKm.HasValue)
+            tour.SetRouteLengthKm(dto.RouteLengthKm.Value);
+
         _tourRepository.Add(tour);
 
         return _mapper.Map<TourResponseDto>(tour);
@@ -133,6 +136,7 @@ public class TourService : ITourService
         );
 
         tour.AddKeyPoint(keyPoint);
+
         _tourRepository.Update(tour);
     }
 
@@ -153,6 +157,7 @@ public class TourService : ITourService
             dto.Longitude
         );
         tour.UpdateKeyPoint(ordinalNo, update);
+
         _tourRepository.Update(tour);
     }
 
@@ -268,6 +273,9 @@ public class TourService : ITourService
                 tour.AddKeyPoint(kp);
             }
         }
+
+        if (dto.RouteLengthKm.HasValue)
+            tour.SetRouteLengthKm(dto.RouteLengthKm.Value);
 
         _tourRepository.Update(tour);
     }

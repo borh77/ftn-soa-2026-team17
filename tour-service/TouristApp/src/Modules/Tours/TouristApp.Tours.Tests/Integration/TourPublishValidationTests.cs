@@ -40,10 +40,10 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         var publishResult = controller.Publish(created.Id);
         publishResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
-        var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
-        var tour = paged.Results.First(r => r.Id == created.Id);
+        var tour = GetTourFromAuthorPage(controller, created.Id);
         tour.Status.ShouldBe("Published");
+        tour.PublishedAt.ShouldNotBeNull();
+        tour.ArchivedAt.ShouldBeNull();
     }
 
     [Fact]
@@ -91,9 +91,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         var publishResult = controller.Publish(created.Id);
         publishResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
-        var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
-        var tour = paged.Results.First(r => r.Id == created.Id);
+        var tour = GetTourFromAuthorPage(controller, created.Id);
         tour.Status.ShouldBe("Published");
     }
 
@@ -114,6 +112,53 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         Should.Throw<EntityValidationException>(() => controller.Publish(created.Id));
+    }
+
+    [Fact]
+    public void Archive_and_reactivate_preserve_lifecycle_visibility()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var authorId = DateTime.UtcNow.Ticks + 11;
+        var controller = CreateController(scope, userId: authorId.ToString());
+
+        var kps = new List<KeyPointDto>
+        {
+            new KeyPointDto(1, "P1", "Desc", "S", "i.jpg", 44, 20),
+            new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
+        };
+        var dto = new CreateTourDto(
+            "Tour",
+            "Desc",
+            "Easy",
+            new List<string> { "avantura" },
+            TravelTimes: DefaultTravelTimes(),
+            KeyPoints: kps,
+            RouteLengthKm: 14.2m);
+
+        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
+
+        controller.Publish(created.Id);
+
+        var publishedTour = GetTourFromAuthorPage(controller, created.Id);
+        publishedTour.Status.ShouldBe("Published");
+        publishedTour.PublishedAt.ShouldNotBeNull();
+        publishedTour.ArchivedAt.ShouldBeNull();
+        publishedTour.RouteLengthKm.ShouldBe(14.2m);
+
+        controller.Archive(created.Id);
+
+        var archivedTour = GetTourFromAuthorPage(controller, created.Id);
+        archivedTour.Status.ShouldBe("Archived");
+        archivedTour.ArchivedAt.ShouldNotBeNull();
+
+        controller.Reactivate(created.Id);
+
+        var reactivatedTour = GetTourFromAuthorPage(controller, created.Id);
+        reactivatedTour.Status.ShouldBe("Published");
+        reactivatedTour.PublishedAt.ShouldNotBeNull();
+        reactivatedTour.ArchivedAt.ShouldBeNull();
+        reactivatedTour.KeyPoints.Count.ShouldBe(2);
     }
 
     [Fact]
@@ -142,5 +187,12 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
                 {
                     new(TouristApp.Tours.Core.Domain.TransportType.Walking, 0)
                 }));
+    }
+
+    private static TourResponseDto GetTourFromAuthorPage(ToursController controller, long tourId)
+    {
+        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
+        var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
+        return paged.Results.First(r => r.Id == tourId);
     }
 }

@@ -185,6 +185,14 @@ public class Tour : AggregateRoot
         _travelTimes = travelTimes;
     }
 
+    public void SetRouteLengthKm(decimal routeLengthKm)
+    {
+        if (routeLengthKm < 0)
+            throw new EntityValidationException("Dužina ture ne može biti negativna.");
+
+        RouteLengthKm = decimal.Round(routeLengthKm, 2, MidpointRounding.AwayFromZero);
+    }
+
     private void EnsureEditable()
     {
         if (Status != TourStatus.Draft)

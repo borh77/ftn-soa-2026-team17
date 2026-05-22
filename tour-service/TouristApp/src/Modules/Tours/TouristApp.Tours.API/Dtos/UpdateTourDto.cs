@@ -7,5 +7,6 @@ public record UpdateTourDto(
     List<string>? Tags,
     decimal Price,
     List<TourTravelTimeDto>? TravelTimes = null,
-    List<KeyPointDto>? KeyPoints = null
+    List<KeyPointDto>? KeyPoints = null,
+    decimal? RouteLengthKm = null
 );

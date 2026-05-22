@@ -125,6 +125,36 @@ public class TourServiceTests
     }
 
     [Fact]
+    public void Create_uses_client_route_length_when_provided()
+    {
+        Tour? savedTour = null;
+
+        _repoMock
+            .Setup(r => r.Add(It.IsAny<Tour>()))
+            .Callback<Tour>(tour => savedTour = tour);
+
+        var dto = new CreateTourDto(
+            Name: "Route from Mapbox",
+            Description: "Tour with client-provided route length.",
+            Difficulty: "Easy",
+            Tags: new List<string> { "city" },
+            TravelTimes: DefaultTravelTimesDto(),
+            KeyPoints: new List<KeyPointDto>
+            {
+                new(null, "A", "a", "s", "i.jpg", 44, 20),
+                new(null, "B", "b", "s", "j.jpg", 44.1, 20.1)
+            },
+            RouteLengthKm: 12.75m
+        );
+
+        var result = _service.Create(1, dto);
+
+        result.RouteLengthKm.ShouldBe(12.75m);
+        savedTour.ShouldNotBeNull();
+        savedTour!.RouteLengthKm.ShouldBe(12.75m);
+    }
+
+    [Fact]
     public void Delete_by_author_and_draft_calls_repo_delete()
     {
         var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
