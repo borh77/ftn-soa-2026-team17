@@ -26,19 +26,9 @@ public interface ITourService
         int pageSize);
 
     /// <summary>
-    /// Dodaje ključnu tačku u turu.
-    /// </summary>
-    void AddKeyPoint(long tourId, KeyPointDto dto);
-
-    /// <summary>
     /// Dodaje ključnu tačku u turu sa verifikacijom autorstva.
     /// </summary>
     void AddKeyPoint(long tourId, long authorId, KeyPointDto dto);
-
-    /// <summary>
-    /// Ažurira ključnu tačku u turi.
-    /// </summary>
-    void UpdateKeyPoint(long tourId, int ordinalNo, KeyPointDto dto);
 
     /// <summary>
     /// Ažurira ključnu tačku u turi sa verifikacijom autorstva.
@@ -46,29 +36,14 @@ public interface ITourService
     void UpdateKeyPoint(long tourId, int ordinalNo, long authorId, KeyPointDto dto);
 
     /// <summary>
-    /// Uklanja ključnu tačku iz ture.
-    /// </summary>
-    void RemoveKeyPoint(long tourId, int ordinalNo);
-
-    /// <summary>
     /// Uklanja ključnu tačku iz ture sa verifikacijom autorstva.
     /// </summary>
     void RemoveKeyPoint(long tourId, int ordinalNo, long authorId);
 
     /// <summary>
-    /// Objavljuje turu.
-    /// </summary>
-    void Publish(long tourId);
-
-    /// <summary>
     /// Objavljuje turu sa verifikacijom autorstva.
     /// </summary>
     void Publish(long tourId, long authorId);
-
-    /// <summary>
-    /// Arhivira turu.
-    /// </summary>
-    void Archive(long tourId);
 
     /// <summary>
     /// Arhivira turu sa verifikacijom autorstva.

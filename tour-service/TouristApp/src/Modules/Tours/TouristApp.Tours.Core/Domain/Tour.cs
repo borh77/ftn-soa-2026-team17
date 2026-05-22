@@ -1,6 +1,5 @@
 ﻿using TouristApp.BuildingBlocks.Core.Domain;
 using TouristApp.BuildingBlocks.Core.Exceptions;
-using TouristApp.Tours.Core.Domain;
 
 namespace TouristApp.Tours.Core.Domain;
 
@@ -59,6 +58,11 @@ public class Tour : AggregateRoot
         if (authorId <= 0)
             throw new EntityValidationException("ID autora mora biti pozitivan broj.");
 
+        ValidateDetails(name, description);
+    }
+
+    private static void ValidateDetails(string name, string description)
+    {
         if (string.IsNullOrWhiteSpace(name))
             throw new EntityValidationException("Naziv ture je obavezan.");
 
@@ -147,17 +151,7 @@ public class Tour : AggregateRoot
 
     public void UpdateDetails(string name, string description, TourDifficulty difficulty, List<string> tags, decimal price)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new EntityValidationException("Naziv ture je obavezan.");
-
-        if (name.Length > 200)
-            throw new EntityValidationException("Naziv ture ne sme biti duži od 200 karaktera.");
-
-        if (string.IsNullOrWhiteSpace(description))
-            throw new EntityValidationException("Opis ture je obavezan.");
-
-        if (description.Length > 5000)
-            throw new EntityValidationException("Opis ture ne sme biti duži od 5000 karaktera.");
+        ValidateDetails(name, description);
 
         Name = name;
         Description = description;

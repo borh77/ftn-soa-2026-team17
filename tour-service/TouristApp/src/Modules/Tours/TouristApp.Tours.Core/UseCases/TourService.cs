@@ -87,10 +87,13 @@ public class TourService : ITourService
             result.TotalCount);
     }
 
-    public void AddKeyPoint(long tourId, KeyPointDto dto)
+    public void AddKeyPoint(long tourId, long authorId, KeyPointDto dto)
     {
         var tour = _tourRepository.GetById(tourId)
             ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može dodati ključnu tačku.");
 
         // Determine ordinal: use client-provided if present, otherwise append
         var ordinal = dto.OrdinalNo.HasValue ? dto.OrdinalNo.Value : tour.KeyPoints.Count + 1;
@@ -111,21 +114,13 @@ public class TourService : ITourService
         _tourRepository.Update(tour);
     }
 
-    public void AddKeyPoint(long tourId, long authorId, KeyPointDto dto)
+    public void UpdateKeyPoint(long tourId, int ordinalNo, long authorId, KeyPointDto dto)
     {
         var tour = _tourRepository.GetById(tourId)
             ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
 
         if (tour.AuthorId != authorId)
-            throw new EntityValidationException("Samo autor ture može dodati ključnu tačku.");
-
-        AddKeyPoint(tourId, dto);
-    }
-
-    public void UpdateKeyPoint(long tourId, int ordinalNo, KeyPointDto dto)
-    {
-        var tour = _tourRepository.GetById(tourId)
-            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+            throw new EntityValidationException("Samo autor ture može ažurirati ključnu tačku.");
 
         var update = new KeyPointUpdate(
             dto.Name,
@@ -139,26 +134,6 @@ public class TourService : ITourService
         _tourRepository.Update(tour);
     }
 
-    public void UpdateKeyPoint(long tourId, int ordinalNo, long authorId, KeyPointDto dto)
-    {
-        var tour = _tourRepository.GetById(tourId)
-            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
-
-        if (tour.AuthorId != authorId)
-            throw new EntityValidationException("Samo autor ture može ažurirati ključnu tačku.");
-
-        UpdateKeyPoint(tourId, ordinalNo, dto);
-    }
-
-    public void RemoveKeyPoint(long tourId, int ordinalNo)
-    {
-        var tour = _tourRepository.GetById(tourId)
-            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
-
-        tour.RemoveKeyPoint(ordinalNo);
-        _tourRepository.Update(tour);
-    }
-
     public void RemoveKeyPoint(long tourId, int ordinalNo, long authorId)
     {
         var tour = _tourRepository.GetById(tourId)
@@ -167,15 +142,7 @@ public class TourService : ITourService
         if (tour.AuthorId != authorId)
             throw new EntityValidationException("Samo autor ture može obrisati ključnu tačku.");
 
-        RemoveKeyPoint(tourId, ordinalNo);
-    }
-
-    public void Publish(long tourId)
-    {
-        var tour = _tourRepository.GetById(tourId)
-            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
-
-        tour.Publish();
+        tour.RemoveKeyPoint(ordinalNo);
         _tourRepository.Update(tour);
     }
 
@@ -187,15 +154,7 @@ public class TourService : ITourService
         if (tour.AuthorId != authorId)
             throw new EntityValidationException("Samo autor ture može objaviti turu.");
 
-        Publish(tourId);
-    }
-
-    public void Archive(long tourId)
-    {
-        var tour = _tourRepository.GetById(tourId)
-            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
-
-        tour.Archive();
+        tour.Publish();
         _tourRepository.Update(tour);
     }
 
@@ -207,7 +166,8 @@ public class TourService : ITourService
         if (tour.AuthorId != authorId)
             throw new EntityValidationException("Samo autor ture može arhivirati turu.");
 
-        Archive(tourId);
+        tour.Archive();
+        _tourRepository.Update(tour);
     }
 
     public void Delete(long tourId, long authorId)

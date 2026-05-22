@@ -38,32 +38,28 @@ internal class TourRepository : ITourRepository
         int page,
         int pageSize)
     {
-        var normalizedPage = page <= 0 ? 1 : page;
-        var normalizedPageSize = pageSize <= 0 ? 10 : pageSize;
-
         var query = _context.Tours
             .Include(t => t.KeyPoints)
             .Where(t => t.AuthorId == authorId)
             .OrderByDescending(t => t.Id);
 
-        var totalCount = query.Count();
-        var items = query
-            .Skip((normalizedPage - 1) * normalizedPageSize)
-            .Take(normalizedPageSize)
-            .ToList();
-
-        return new PagedResult<Tour>(items, totalCount);
+        return Paginate(query, page, pageSize);
     }
 
     public PagedResult<Tour> GetActive(int page, int pageSize)
     {
-        var normalizedPage = page <= 0 ? 1 : page;
-        var normalizedPageSize = pageSize <= 0 ? 10 : pageSize;
-
         var query = _context.Tours
             .Include(t => t.KeyPoints)
             .Where(t => t.Status == TouristApp.Tours.Core.Domain.TourStatus.Published)
             .OrderByDescending(t => t.Id);
+
+        return Paginate(query, page, pageSize);
+    }
+
+    private static PagedResult<Tour> Paginate(IQueryable<Tour> query, int page, int pageSize)
+    {
+        var normalizedPage = page <= 0 ? 1 : page;
+        var normalizedPageSize = pageSize <= 0 ? 10 : pageSize;
 
         var totalCount = query.Count();
         var items = query
