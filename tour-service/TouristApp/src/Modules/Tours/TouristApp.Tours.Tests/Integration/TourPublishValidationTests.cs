@@ -5,6 +5,7 @@ using TouristApp.API.Controllers;
 using TouristApp.BuildingBlocks.Core.Exceptions;
 using TouristApp.BuildingBlocks.Core.UseCases;
 using TouristApp.Tours.API.Dtos;
+using TouristApp.Tours.API.Public;
 
 namespace TouristApp.Tours.Tests.Integration;
 
@@ -25,9 +26,10 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var authorId = DateTime.UtcNow.Ticks;
         var controller = CreateController(scope, userId: authorId.ToString());
+        var tourService = GetTourService(scope);
 
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string> { "avantura" }, TravelTimes: DefaultTravelTimes());
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         Should.Throw<EntityValidationException>(() => controller.Publish(created.Id));
@@ -40,7 +42,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         var publishResult = controller.Publish(created.Id);
         publishResult.ShouldBeOfType<OkResult>();
 
-        var tour = GetTourFromAuthorPage(controller, created.Id);
+        var tour = GetTourFromAuthorPage(tourService, authorId, created.Id);
         tour.Status.ShouldBe("Published");
         tour.PublishedAt.ShouldNotBeNull();
         tour.ArchivedAt.ShouldBeNull();
@@ -59,7 +61,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
             new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string> { "avantura" }, TravelTimes: DefaultTravelTimes(), KeyPoints: kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         controller.Publish(created.Id);
@@ -75,6 +77,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var authorId = DateTime.UtcNow.Ticks + 4;
         var controller = CreateController(scope, userId: authorId.ToString());
+        var tourService = GetTourService(scope);
 
         var kps = new List<KeyPointDto>
         {
@@ -82,7 +85,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
             new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string> { "avantura" }, TravelTimes: DefaultTravelTimes(), KeyPoints: kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         created.KeyPoints.Count.ShouldBe(2);
@@ -91,7 +94,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         var publishResult = controller.Publish(created.Id);
         publishResult.ShouldBeOfType<OkResult>();
 
-        var tour = GetTourFromAuthorPage(controller, created.Id);
+        var tour = GetTourFromAuthorPage(tourService, authorId, created.Id);
         tour.Status.ShouldBe("Published");
     }
 
@@ -108,7 +111,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
             new KeyPointDto(2, "P2", "Desc", "S", "j.jpg", 44.1, 20.1)
         };
         var dto = new CreateTourDto("Tour", "Desc", "Easy", new List<string>(), TravelTimes: DefaultTravelTimes(), KeyPoints: kps);
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         Should.Throw<EntityValidationException>(() => controller.Publish(created.Id));
@@ -120,6 +123,7 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var authorId = DateTime.UtcNow.Ticks + 11;
         var controller = CreateController(scope, userId: authorId.ToString());
+        var tourService = GetTourService(scope);
 
         var kps = new List<KeyPointDto>
         {
@@ -135,12 +139,12 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
             KeyPoints: kps,
             RouteLengthKm: 14.2m);
 
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         controller.Publish(created.Id);
 
-        var publishedTour = GetTourFromAuthorPage(controller, created.Id);
+        var publishedTour = GetTourFromAuthorPage(tourService, authorId, created.Id);
         publishedTour.Status.ShouldBe("Published");
         publishedTour.PublishedAt.ShouldNotBeNull();
         publishedTour.ArchivedAt.ShouldBeNull();
@@ -148,13 +152,13 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
 
         controller.Archive(created.Id);
 
-        var archivedTour = GetTourFromAuthorPage(controller, created.Id);
+        var archivedTour = GetTourFromAuthorPage(tourService, authorId, created.Id);
         archivedTour.Status.ShouldBe("Archived");
         archivedTour.ArchivedAt.ShouldNotBeNull();
 
         controller.Reactivate(created.Id);
 
-        var reactivatedTour = GetTourFromAuthorPage(controller, created.Id);
+        var reactivatedTour = GetTourFromAuthorPage(tourService, authorId, created.Id);
         reactivatedTour.Status.ShouldBe("Published");
         reactivatedTour.PublishedAt.ShouldNotBeNull();
         reactivatedTour.ArchivedAt.ShouldBeNull();
@@ -189,10 +193,9 @@ public class TourPublishValidationTests : BaseToursIntegrationTest
                 }));
     }
 
-    private static TourResponseDto GetTourFromAuthorPage(ToursController controller, long tourId)
+    private static TourResponseDto GetTourFromAuthorPage(ITourService tourService, long authorId, long tourId)
     {
-        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
-        var paged = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
+        var paged = tourService.GetByAuthor(authorId, 1, 10);
         return paged.Results.First(r => r.Id == tourId);
     }
 }

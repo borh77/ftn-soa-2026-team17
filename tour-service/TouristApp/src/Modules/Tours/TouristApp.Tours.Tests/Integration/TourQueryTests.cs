@@ -16,10 +16,9 @@ public class TourQueryTests : BaseToursIntegrationTest
     public void GetByAuthor_returns_only_tours_for_requested_author()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope, userId: "101");
+        var tourService = GetTourService(scope);
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(page: 1, pageSize: 10).Result!;
-        var tours = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
+        var tours = tourService.GetByAuthor(101, page: 1, pageSize: 10);
 
         tours.TotalCount.ShouldBeGreaterThanOrEqualTo(1);
         tours.Results.All(t => t.AuthorId == 101).ShouldBeTrue();
@@ -30,10 +29,9 @@ public class TourQueryTests : BaseToursIntegrationTest
     public void GetByAuthor_returns_empty_when_author_has_no_tours()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope, userId: "999999");
+        var tourService = GetTourService(scope);
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(page: 1, pageSize: 10).Result!;
-        var tours = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
+        var tours = tourService.GetByAuthor(999999, page: 1, pageSize: 10);
 
         tours.TotalCount.ShouldBe(0);
         tours.Results.ShouldBeEmpty();
@@ -43,10 +41,9 @@ public class TourQueryTests : BaseToursIntegrationTest
     public void GetActive_returns_only_published_tours()
     {
         using var scope = Factory.Services.CreateScope();
-        var controller = CreateController(scope);
+        var tourService = GetTourService(scope);
 
-        var getResult = (OkObjectResult)controller.GetActive(page: 1, pageSize: 10).Result!;
-        var tours = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
+        var tours = tourService.GetActive(page: 1, pageSize: 10);
 
         tours.TotalCount.ShouldBeGreaterThanOrEqualTo(0);
         tours.Results.All(t => t.Status == "Published").ShouldBeTrue();

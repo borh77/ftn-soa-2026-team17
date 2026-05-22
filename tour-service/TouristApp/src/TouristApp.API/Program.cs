@@ -12,7 +12,7 @@ using TouristApp.Tours.Infrastructure.Database;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddGrpc().AddJsonTranscoding();
+builder.Services.AddGrpc();
 builder.Services.ConfigureSwagger(builder.Configuration);
 const string corsPolicy = "_corsPolicy";
 builder.Services.ConfigureCors(corsPolicy);
