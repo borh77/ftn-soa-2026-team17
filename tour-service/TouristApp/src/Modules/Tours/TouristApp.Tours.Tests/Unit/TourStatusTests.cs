@@ -34,10 +34,25 @@ public class TourStatusTests
         var after = DateTime.UtcNow;
 
         tour.Status.ShouldBe(TourStatus.Published);
+        tour.RouteLengthKm.ShouldBeGreaterThan(0m);
         tour.PublishedAt.ShouldNotBeNull();
         (tour.PublishedAt!.Value >= before).ShouldBeTrue();
         (tour.PublishedAt.Value <= after).ShouldBeTrue();
         tour.ArchivedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Route_length_is_zero_until_second_keypoint_is_added()
+    {
+        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, DefaultTags(), DefaultTravelTimes());
+
+        tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
+
+        tour.RouteLengthKm.ShouldBe(0m);
+
+        tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
+
+        tour.RouteLengthKm.ShouldBeGreaterThan(0m);
     }
 
     [Fact]

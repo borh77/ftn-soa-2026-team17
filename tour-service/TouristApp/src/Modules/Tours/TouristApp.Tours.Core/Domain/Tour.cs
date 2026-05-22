@@ -13,6 +13,7 @@ public class Tour : AggregateRoot
     public IReadOnlyList<TourTravelTime> TravelTimes => _travelTimes.AsReadOnly();
     public TourStatus Status { get; private set; }
     public decimal Price { get; private set; }
+    public decimal RouteLengthKm { get; private set; }
     public DateTime? PublishedAt { get; private set; }
     public DateTime? ArchivedAt { get; private set; }
     public IReadOnlyList<KeyPoint> KeyPoints => _keyPoints.AsReadOnly();
@@ -42,6 +43,7 @@ public class Tour : AggregateRoot
         //Status se uvek postavlja na Draft, cena na 0
         Status = TourStatus.Draft;
         Price = 0m;
+        RouteLengthKm = 0m;
         PublishedAt = null;
         ArchivedAt = null;
     }
@@ -110,6 +112,7 @@ public class Tour : AggregateRoot
 
         _keyPoints.Add(keyPoint);
         RecalculateKeyPointOrdinals();
+        RecalculateRouteLengthKm();
     }
 
     /// <summary>
@@ -124,6 +127,7 @@ public class Tour : AggregateRoot
         {
             _keyPoints.Remove(kp);
             RecalculateKeyPointOrdinals();
+            RecalculateRouteLengthKm();
         }
     }
 
@@ -152,12 +156,17 @@ public class Tour : AggregateRoot
         );
 
         _keyPoints[_keyPoints.IndexOf(keyPoint)] = updatedKeyPoint;
+        RecalculateRouteLengthKm();
     }
 
     /// <summary>
     /// Briše sve ključne tačke iz ture.
     /// </summary>
-    public void ClearKeyPoints() => _keyPoints.Clear();
+    public void ClearKeyPoints()
+    {
+        _keyPoints.Clear();
+        RecalculateRouteLengthKm();
+    }
 
     public void UpdateDetails(string name, string description, TourDifficulty difficulty, List<string> tags, decimal price)
     {
@@ -227,6 +236,50 @@ public class Tour : AggregateRoot
         _keyPoints.Clear();
         _keyPoints.AddRange(ordered);
     }
+
+    private void RecalculateRouteLengthKm()
+    {
+        if (_keyPoints.Count < 2)
+        {
+            RouteLengthKm = 0m;
+            return;
+        }
+
+        var ordered = _keyPoints.OrderBy(point => point.OrdinalNo).ToList();
+        double totalKm = 0;
+
+        for (int i = 1; i < ordered.Count; i++)
+        {
+            totalKm += HaversineDistanceKm(
+                ordered[i - 1].Latitude,
+                ordered[i - 1].Longitude,
+                ordered[i].Latitude,
+                ordered[i].Longitude);
+        }
+
+        RouteLengthKm = decimal.Round((decimal)totalKm, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static double HaversineDistanceKm(double latitude1, double longitude1, double latitude2, double longitude2)
+    {
+        const double EarthRadiusKm = 6371d;
+
+        var lat1 = DegreesToRadians(latitude1);
+        var lon1 = DegreesToRadians(longitude1);
+        var lat2 = DegreesToRadians(latitude2);
+        var lon2 = DegreesToRadians(longitude2);
+
+        var deltaLat = lat2 - lat1;
+        var deltaLon = lon2 - lon1;
+
+        var a = Math.Pow(Math.Sin(deltaLat / 2), 2)
+            + Math.Cos(lat1) * Math.Cos(lat2) * Math.Pow(Math.Sin(deltaLon / 2), 2);
+
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return EarthRadiusKm * c;
+    }
+
+    private static double DegreesToRadians(double degrees) => degrees * Math.PI / 180d;
 
     private static void ValidateTravelTimes(List<TourTravelTime> travelTimes)
     {

@@ -9,6 +9,7 @@ public record TourResponseDto(
     IReadOnlyList<string> Tags,
     string Status,
     decimal Price,
+    decimal RouteLengthKm,
     DateTime? PublishedAt,
     DateTime? ArchivedAt,
     IReadOnlyList<TourTravelTimeDto> TravelTimes,

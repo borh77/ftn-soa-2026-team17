@@ -101,6 +101,7 @@ public class TourService : ITourService
             dto.Tags,
             dto.Status,
             dto.Price,
+            dto.RouteLengthKm,
             dto.PublishedAt,
             dto.ArchivedAt,
             dto.TravelTimes,

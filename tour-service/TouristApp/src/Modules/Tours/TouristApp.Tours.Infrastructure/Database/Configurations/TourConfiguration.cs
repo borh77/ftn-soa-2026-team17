@@ -58,6 +58,11 @@ internal class TourConfiguration : IEntityTypeConfiguration<Tour>
             .HasPrecision(18, 2)
             .HasDefaultValue(0m);
 
+        builder.Property(t => t.RouteLengthKm)
+            .IsRequired()
+            .HasPrecision(18, 2)
+            .HasDefaultValue(0m);
+
         var travelTimesConverter = new ValueConverter<List<TourTravelTime>, string>(
             v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
             v => string.IsNullOrWhiteSpace(v)

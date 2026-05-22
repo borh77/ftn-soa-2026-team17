@@ -121,6 +121,7 @@ public class TourServiceTests
         result.Results.Count.ShouldBe(1);
         result.Results[0].KeyPoints.Count.ShouldBe(1);
         result.Results[0].KeyPoints[0].OrdinalNo.ShouldBe(1);
+        result.Results[0].RouteLengthKm.ShouldBeGreaterThan(0m);
     }
 
     [Fact]
