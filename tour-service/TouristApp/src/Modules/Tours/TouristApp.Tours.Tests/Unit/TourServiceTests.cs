@@ -7,6 +7,8 @@ using TouristApp.Tours.Core.Domain;
 using TouristApp.Tours.Core.Domain.Repositories;
 using TouristApp.Tours.Core.Mappers;
 using TouristApp.Tours.Core.UseCases;
+using ApiTransportType = TouristApp.Tours.API.Dtos.TransportType;
+using DomainTransportType = TouristApp.Tours.Core.Domain.TransportType;
 
 namespace TouristApp.Tours.Tests.Unit;
 
@@ -14,6 +16,12 @@ public class TourServiceTests
 {
     private readonly Mock<ITourRepository> _repoMock;
     private readonly TourService _service;
+
+    private static List<TourTravelTimeDto> DefaultTravelTimesDto() =>
+        new() { new(ApiTransportType.Walking, 120) };
+
+    private static List<TourTravelTime> DefaultTravelTimes() =>
+        new() { new(DomainTransportType.Walking, 120) };
 
     public TourServiceTests()
     {
@@ -36,7 +44,8 @@ public class TourServiceTests
             Name: "Fruska Gora vikend ruta",
             Description: "Lagana planinarska ruta za vikend.",
             Difficulty: "easy",
-            Tags: new List<string> { "planina", "vikend" }
+            Tags: new List<string> { "planina", "vikend" },
+            TravelTimes: DefaultTravelTimesDto()
         );
 
         var result = _service.Create(authorId: 101, dto);
@@ -61,7 +70,8 @@ public class TourServiceTests
             Name: "Test",
             Description: "Opis",
             Difficulty: "impossible",
-            Tags: new List<string>()
+            Tags: new List<string>(),
+            TravelTimes: DefaultTravelTimesDto()
         );
 
         Should.Throw<EntityValidationException>(
@@ -75,8 +85,8 @@ public class TourServiceTests
     {
         var tours = new List<Tour>
         {
-            Tour.Create(7, "Tura A", "Opis A", TourDifficulty.Medium, new List<string> { "grad" }),
-            Tour.Create(7, "Tura B", "Opis B", TourDifficulty.Hard, new List<string> { "avantura" })
+            Tour.Create(7, "Tura A", "Opis A", TourDifficulty.Medium, new List<string> { "grad" }, DefaultTravelTimes()),
+            Tour.Create(7, "Tura B", "Opis B", TourDifficulty.Hard, new List<string> { "avantura" }, DefaultTravelTimes())
         };
 
         _repoMock
@@ -96,7 +106,7 @@ public class TourServiceTests
     [Fact]
     public void Delete_by_author_and_draft_calls_repo_delete()
     {
-        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         _repoMock.Setup(r => r.GetById(5)).Returns(tour);
 
         _service.Delete(5, 1);
@@ -107,7 +117,7 @@ public class TourServiceTests
     [Fact]
     public void Delete_by_non_author_throws()
     {
-        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         _repoMock.Setup(r => r.GetById(6)).Returns(tour);
 
         Should.Throw<EntityValidationException>(() => _service.Delete(6, 999));
@@ -117,7 +127,7 @@ public class TourServiceTests
     [Fact]
     public void Delete_when_not_draft_throws()
     {
-        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, new List<string> { "tag" }, DefaultTravelTimes());
         // mark published
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
@@ -132,10 +142,10 @@ public class TourServiceTests
     [Fact]
     public void Update_by_author_and_draft_updates_and_saves()
     {
-        var tour = Tour.Create(1, "Old", "Old Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Old", "Old Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         _repoMock.Setup(r => r.GetById(10)).Returns(tour);
 
-        var dto = new UpdateTourDto("New", "New Desc", "Medium", new List<string>{"a"}, 12.34m);
+        var dto = new UpdateTourDto("New", "New Desc", "Medium", new List<string>{"a"}, 12.34m, DefaultTravelTimesDto());
 
         _service.Update(10, 1, dto);
 
@@ -145,10 +155,10 @@ public class TourServiceTests
     [Fact]
     public void Update_by_non_author_throws()
     {
-        var tour = Tour.Create(1, "Old", "Old Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Old", "Old Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         _repoMock.Setup(r => r.GetById(11)).Returns(tour);
 
-        var dto = new UpdateTourDto("New", "New", "Easy", new List<string>(), 0m);
+        var dto = new UpdateTourDto("New", "New", "Easy", new List<string>(), 0m, DefaultTravelTimesDto());
 
         Should.Throw<EntityValidationException>(() => _service.Update(11, 999, dto));
         _repoMock.Verify(r => r.Update(It.IsAny<Tour>()), Times.Never);
@@ -157,16 +167,71 @@ public class TourServiceTests
     [Fact]
     public void Update_when_not_draft_throws()
     {
-        var tour = Tour.Create(1, "Old", "Old Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Old", "Old Desc", TourDifficulty.Easy, new List<string> { "tag" }, DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
         tour.Publish();
 
         _repoMock.Setup(r => r.GetById(12)).Returns(tour);
 
-        var dto = new UpdateTourDto("New", "New", "Easy", new List<string>(), 0m);
+        var dto = new UpdateTourDto("New", "New", "Easy", new List<string>(), 0m, DefaultTravelTimesDto());
 
         Should.Throw<EntityValidationException>(() => _service.Update(12, 1, dto));
+    }
+
+    [Fact]
+    public void Create_without_travel_times_throws_and_does_not_save()
+    {
+        var dto = new CreateTourDto(
+            Name: "Test",
+            Description: "Opis",
+            Difficulty: "Easy",
+            Tags: new List<string> { "tag" },
+            TravelTimes: new List<TourTravelTimeDto>()
+        );
+
+        Should.Throw<EntityValidationException>(() => _service.Create(authorId: 5, dto));
+
+        _repoMock.Verify(r => r.Add(It.IsAny<Tour>()), Times.Never);
+    }
+
+    [Fact]
+    public void Create_with_invalid_transport_type_throws_and_does_not_save()
+    {
+        var dto = new CreateTourDto(
+            Name: "Test",
+            Description: "Opis",
+            Difficulty: "Easy",
+            Tags: new List<string> { "tag" },
+            TravelTimes: new List<TourTravelTimeDto>
+            {
+                new((ApiTransportType)99, 20)
+            }
+        );
+
+        Should.Throw<EntityValidationException>(() => _service.Create(authorId: 5, dto));
+
+        _repoMock.Verify(r => r.Add(It.IsAny<Tour>()), Times.Never);
+    }
+
+    [Fact]
+    public void Create_with_duplicate_transport_types_throws_and_does_not_save()
+    {
+        var dto = new CreateTourDto(
+            Name: "Test",
+            Description: "Opis",
+            Difficulty: "Easy",
+            Tags: new List<string> { "tag" },
+            TravelTimes: new List<TourTravelTimeDto>
+            {
+                new(ApiTransportType.Walking, 120),
+                new(ApiTransportType.Walking, 90)
+            }
+        );
+
+        Should.Throw<EntityValidationException>(() => _service.Create(authorId: 5, dto));
+
+        _repoMock.Verify(r => r.Add(It.IsAny<Tour>()), Times.Never);
     }
 }
 

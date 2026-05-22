@@ -7,11 +7,14 @@ namespace TouristApp.Tours.Tests.Unit;
 
 public class TourKeyPointTests
 {
+    private static List<TourTravelTime> DefaultTravelTimes() =>
+        new() { new(TransportType.Walking, 120) };
+
     [Fact]
     public void AddKeyPoint_succeeds()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         var keyPoint = new KeyPoint(1, "Museum", "A famous museum", "Secret entrance", "museum.jpg", 44.82, 20.45);
 
         // Act
@@ -27,7 +30,7 @@ public class TourKeyPointTests
     public void AddKeyPoint_at_same_ordinal_shifts_existing()
     {
         // Arrange: test that inserting at same ordinal shifts existing keypoints
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         var kp1 = new KeyPoint(1, "Museum", "A famous museum", "Secret", "museum.jpg", 44.82, 20.45);
         var kp2 = new KeyPoint(1, "Park", "A public park", "Secret", "park.jpg", 44.83, 20.46);
 
@@ -48,7 +51,7 @@ public class TourKeyPointTests
     public void AddKeyPoint_throws_when_null()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
 
         // Act & Assert
         Should.Throw<ArgumentNullException>(() => tour.AddKeyPoint(null!));
@@ -58,7 +61,7 @@ public class TourKeyPointTests
     public void RemoveKeyPoint_succeeds()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         var keyPoint = new KeyPoint(1, "Museum", "A famous museum", "Secret", "museum.jpg", 44.82, 20.45);
         tour.AddKeyPoint(keyPoint);
 
@@ -73,7 +76,7 @@ public class TourKeyPointTests
     public void RemoveKeyPoint_does_nothing_when_ordinal_not_found()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         var keyPoint = new KeyPoint(1, "Museum", "A famous museum", "Secret", "museum.jpg", 44.82, 20.45);
         tour.AddKeyPoint(keyPoint);
 
@@ -88,7 +91,7 @@ public class TourKeyPointTests
     public void UpdateKeyPoint_succeeds()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         var keyPoint = new KeyPoint(1, "Museum", "A famous museum", "Secret", "museum.jpg", 44.82, 20.45);
         tour.AddKeyPoint(keyPoint);
 
@@ -115,7 +118,7 @@ public class TourKeyPointTests
     public void UpdateKeyPoint_throws_when_ordinal_not_found()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         var update = new KeyPointUpdate("Updated", "Updated", "Updated", "updated.jpg", 45.0, 21.0);
 
         // Act & Assert
@@ -126,7 +129,7 @@ public class TourKeyPointTests
     public void UpdateKeyPoint_throws_when_update_null()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         var keyPoint = new KeyPoint(1, "Museum", "A famous museum", "Secret", "museum.jpg", 44.82, 20.45);
         tour.AddKeyPoint(keyPoint);
 
@@ -138,7 +141,7 @@ public class TourKeyPointTests
     public void ClearKeyPoints_succeeds()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "Museum", "A museum", "Secret", "museum.jpg", 44.82, 20.45));
         tour.AddKeyPoint(new KeyPoint(2, "Park", "A park", "Secret", "park.jpg", 44.83, 20.46));
 
@@ -180,7 +183,7 @@ public class TourKeyPointTests
     public void AddMultipleKeyPoints_recalculates_ordinals()
     {
         // Arrange
-        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Test Tour", "Test Description", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         var kp1 = new KeyPoint(1, "Museum", "A museum", "Secret", "museum.jpg", 44, 20);
         var kp2 = new KeyPoint(2, "Park", "A park", "Secret", "park.jpg", 45, 21);
         var kp3 = new KeyPoint(3, "Monument", "A monument", "Secret", "monument.jpg", 46, 22);

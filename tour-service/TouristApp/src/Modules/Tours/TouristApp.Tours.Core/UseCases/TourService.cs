@@ -30,7 +30,8 @@ public class TourService : ITourService
             dto.Name,
             dto.Description,
             difficulty,
-            dto.Tags ?? new List<string>()
+            dto.Tags ?? new List<string>(),
+            dto.TravelTimes?.Select(time => new TourTravelTime((TouristApp.Tours.Core.Domain.TransportType)time.TransportType, time.Minutes)).ToList() ?? new List<TourTravelTime>()
         );
 
         // If initial keypoints provided in DTO, add them and let server assign ordinals
@@ -211,6 +212,10 @@ public class TourService : ITourService
         }
 
         tour.UpdateDetails(dto.Name, dto.Description, difficulty, dto.Tags ?? new List<string>(), dto.Price);
+
+        tour.SetTravelTimes(
+            dto.TravelTimes?.Select(time => new TourTravelTime((TouristApp.Tours.Core.Domain.TransportType)time.TransportType, time.Minutes)).ToList()
+            ?? new List<TourTravelTime>());
 
         // Process keypoints if provided: respect ordinals or append
         if (dto.KeyPoints != null && dto.KeyPoints.Any())

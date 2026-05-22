@@ -10,11 +10,13 @@ public class Tour : AggregateRoot
     public string Description { get; private set; } = string.Empty;
     public TourDifficulty Difficulty { get; private set; }
     public IReadOnlyList<string> Tags => _tags.AsReadOnly();
+    public IReadOnlyList<TourTravelTime> TravelTimes => _travelTimes.AsReadOnly();
     public TourStatus Status { get; private set; }
     public decimal Price { get; private set; }
     public IReadOnlyList<KeyPoint> KeyPoints => _keyPoints.AsReadOnly();
 
     private List<string> _tags = new();
+    private List<TourTravelTime> _travelTimes = new();
     private List<KeyPoint> _keyPoints = new();
 
     // Required by EF Core
@@ -25,13 +27,15 @@ public class Tour : AggregateRoot
         string name,
         string description,
         TourDifficulty difficulty,
-        List<string> tags)
+        List<string> tags,
+        List<TourTravelTime> travelTimes)
     {
         AuthorId = authorId;
         Name = name;
         Description = description;
         Difficulty = difficulty;
         _tags = tags;
+        _travelTimes = travelTimes;
 
         //Status se uvek postavlja na Draft, cena na 0
         Status = TourStatus.Draft;
@@ -46,19 +50,21 @@ public class Tour : AggregateRoot
         string name,
         string description,
         TourDifficulty difficulty,
-        List<string> tags)
+        List<string> tags,
+        List<TourTravelTime> travelTimes)
     {
-        Validate(authorId, name, description);
+        Validate(authorId, name, description, travelTimes);
 
-        return new Tour(authorId, name, description, difficulty, tags ?? new List<string>());
+        return new Tour(authorId, name, description, difficulty, tags ?? new List<string>(), travelTimes);
     }
 
-    private static void Validate(long authorId, string name, string description)
+    private static void Validate(long authorId, string name, string description, List<TourTravelTime> travelTimes)
     {
         if (authorId <= 0)
             throw new EntityValidationException("ID autora mora biti pozitivan broj.");
 
         ValidateDetails(name, description);
+        ValidateTravelTimes(travelTimes);
     }
 
     private static void ValidateDetails(string name, string description)
@@ -160,6 +166,12 @@ public class Tour : AggregateRoot
         Price = price;
     }
 
+    public void SetTravelTimes(List<TourTravelTime> travelTimes)
+    {
+        ValidateTravelTimes(travelTimes);
+        _travelTimes = travelTimes;
+    }
+
     private void EnsureEditable()
     {
         if (Status != TourStatus.Draft)
@@ -171,6 +183,13 @@ public class Tour : AggregateRoot
     /// </summary>
     public void Publish()
     {
+        ValidateDetails(Name, Description);
+
+        if (_tags == null || _tags.Count == 0 || _tags.Any(string.IsNullOrWhiteSpace))
+            throw new EntityValidationException("Tura mora sadržati bar jedan ispravan tag da bi bila publikovana.");
+
+        ValidateTravelTimes(_travelTimes);
+
         if (_keyPoints.Count < 2)
             throw new EntityValidationException("Tura mora imati najmanje dve ključne tačke da bi bila publikovana.");
 
@@ -197,5 +216,20 @@ public class Tour : AggregateRoot
         }
         _keyPoints.Clear();
         _keyPoints.AddRange(ordered);
+    }
+
+    private static void ValidateTravelTimes(List<TourTravelTime> travelTimes)
+    {
+        if (travelTimes == null || travelTimes.Count == 0)
+            throw new EntityValidationException("Morate definisati bar jedno vreme obilaska za neki tip prevoza.");
+
+        if (travelTimes.Any(time => !Enum.IsDefined(typeof(TransportType), time.TransportType)))
+            throw new EntityValidationException("Tip prevoza mora biti jedna od vrednosti: Walking, Bicycle, Car.");
+
+        if (travelTimes.Any(time => time.Minutes <= 0))
+            throw new EntityValidationException("Vreme obilaska mora biti pozitivan broj minuta.");
+
+        if (travelTimes.Select(time => time.TransportType).Distinct().Count() != travelTimes.Count)
+            throw new EntityValidationException("Za svaki tip prevoza može postojati samo jedno vreme obilaska.");
     }
 }

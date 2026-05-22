@@ -20,6 +20,7 @@ public class ToursContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("Tours");
+        modelBuilder.Ignore<TourTravelTime>();
         modelBuilder.ApplyConfiguration(new TourConfiguration());
         modelBuilder.ApplyConfiguration(new KeyPointConfiguration());
         modelBuilder.ApplyConfiguration(new TourReviewConfiguration());

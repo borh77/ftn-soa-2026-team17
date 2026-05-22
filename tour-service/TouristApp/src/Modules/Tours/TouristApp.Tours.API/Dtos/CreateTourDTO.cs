@@ -5,5 +5,6 @@ public record CreateTourDto(
     string Description,
     string Difficulty,
     List<string> Tags,
+    List<TourTravelTimeDto>? TravelTimes = null,
     List<KeyPointDto>? KeyPoints = null
 );

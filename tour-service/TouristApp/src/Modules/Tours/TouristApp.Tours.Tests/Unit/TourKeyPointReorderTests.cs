@@ -10,10 +10,13 @@ namespace TouristApp.Tours.Tests.Unit;
 /// </summary>
 public class TourKeyPointReorderTests
 {
+    private static List<TourTravelTime> DefaultTravelTimes() =>
+        new() { new(TransportType.Walking, 120) };
+
     [Fact]
     public void AddKeyPoint_at_beginning_shifts_existing_ordinales_up()
     {
-        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
 
@@ -32,7 +35,7 @@ public class TourKeyPointReorderTests
     [Fact]
     public void AddKeyPoint_in_middle_shifts_affected_ordinales()
     {
-        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
         tour.AddKeyPoint(new KeyPoint(3, "C", "c", "s", "k.jpg", 44.2, 20.2));
@@ -54,7 +57,7 @@ public class TourKeyPointReorderTests
     [Fact]
     public void AddKeyPoint_at_end_appends_without_shifting()
     {
-        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
 
@@ -69,7 +72,7 @@ public class TourKeyPointReorderTests
     [Fact]
     public void AddKeyPoint_with_ordinal_greater_than_count_plus_one_throws()
     {
-        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
 
         // Attempt to insert at ordinal 5 when count=1 (max=2)
@@ -80,7 +83,7 @@ public class TourKeyPointReorderTests
     [Fact]
     public void RemoveKeyPoint_then_add_recalculates_ordinales()
     {
-        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
         tour.AddKeyPoint(new KeyPoint(3, "C", "c", "s", "k.jpg", 44.2, 20.2));
@@ -104,7 +107,7 @@ public class TourKeyPointReorderTests
     [Fact]
     public void UpdateKeyPoint_does_not_affect_ordinales_of_others()
     {
-        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
         tour.AddKeyPoint(new KeyPoint(3, "C", "c", "s", "k.jpg", 44.2, 20.2));
@@ -121,7 +124,7 @@ public class TourKeyPointReorderTests
     [Fact]
     public void Multiple_inserts_at_different_positions_maintain_correct_order()
     {
-        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.KeyPoints[0].OrdinalNo.ShouldBe(1);
@@ -148,7 +151,7 @@ public class TourKeyPointReorderTests
     [Fact]
     public void ClearKeyPoints_removes_all()
     {
-        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>());
+        var tour = Tour.Create(1, "Tour", "Desc", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
 

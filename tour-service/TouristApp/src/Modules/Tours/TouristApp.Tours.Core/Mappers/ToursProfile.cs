@@ -18,7 +18,14 @@ public class ToursProfile : Profile
                 src.Tags,
                 src.Status.ToString(),
                 src.Price,
+                ctx.Mapper.Map<IReadOnlyList<TourTravelTimeDto>>(src.TravelTimes),
                 ctx.Mapper.Map<IReadOnlyList<KeyPointDto>>(src.KeyPoints)
+            ));
+
+        CreateMap<TourTravelTime, TourTravelTimeDto>()
+            .ConstructUsing(src => new TourTravelTimeDto(
+                (TouristApp.Tours.API.Dtos.TransportType)src.TransportType,
+                src.Minutes
             ));
 
         CreateMap<KeyPoint, KeyPointDto>()

@@ -9,5 +9,6 @@ public record TourResponseDto(
     IReadOnlyList<string> Tags,
     string Status,
     decimal Price,
+    IReadOnlyList<TourTravelTimeDto> TravelTimes,
     IReadOnlyList<KeyPointDto> KeyPoints
 );

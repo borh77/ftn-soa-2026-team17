@@ -12,6 +12,9 @@ public class TourCommandTests : BaseToursIntegrationTest
 {
     public TourCommandTests(ToursTestFactory factory) : base(factory) { }
 
+    private static List<TourTravelTimeDto> DefaultTravelTimes() =>
+        new() { new(TransportType.Walking, 120) };
+
     [Fact]
     public void Create_creates_tour_with_draft_status_and_zero_price()
     {
@@ -23,7 +26,8 @@ public class TourCommandTests : BaseToursIntegrationTest
             Name: "Novi Sad city walk",
             Description: "Lagana gradska setnja kroz centar.",
             Difficulty: "Medium",
-            Tags: new List<string> { "grad", "pesacenje" }
+            Tags: new List<string> { "grad", "pesacenje" },
+            TravelTimes: DefaultTravelTimes()
         );
 
         var result = (CreatedAtActionResult)controller.Create(dto).Result!;
@@ -45,6 +49,6 @@ public class TourCommandTests : BaseToursIntegrationTest
 
         Should.Throw<EntityValidationException>(
             () => controller.Create(
-                new CreateTourDto("Nevalidna", "Opis", "UltraHard", new List<string>())));
+                new CreateTourDto("Nevalidna", "Opis", "UltraHard", new List<string>(), DefaultTravelTimes())));
     }
 }

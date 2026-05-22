@@ -14,6 +14,9 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
 {
     public TourKeyPointCommandTests(ToursTestFactory factory) : base(factory) { }
 
+    private static List<TourTravelTimeDto> DefaultTravelTimes() =>
+        new() { new(TransportType.Walking, 120) };
+
     [Fact]
     public void AddKeyPoint_endpoint_adds_keypoint()
     {
@@ -25,7 +28,8 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
             Name: "City walk",
             Description: "Opis",
             Difficulty: "Easy",
-            Tags: new List<string>()
+            Tags: new List<string>(),
+            TravelTimes: DefaultTravelTimes()
         );
 
         var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
@@ -49,7 +53,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         var authorId = DateTime.UtcNow.Ticks + 1;
         var controller = CreateController(scope, userId: authorId.ToString());
 
-        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>());
+        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes());
         var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
@@ -74,7 +78,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         var authorId = DateTime.UtcNow.Ticks + 2;
         var controller = CreateController(scope, userId: authorId.ToString());
 
-        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>());
+        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes());
         var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
@@ -104,7 +108,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
             new KeyPointDto(1, "First", "Desc1", "S", "img1.jpg", 44.8, 20.4)
         };
 
-        var dto = new CreateTourDto("CityOrder", "Desc", "Easy", new List<string>(), initialKps);
+        var dto = new CreateTourDto("CityOrder", "Desc", "Easy", new List<string>(), DefaultTravelTimes(), initialKps);
         var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
@@ -130,7 +134,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
             new KeyPointDto(100, "Far", "Desc", "S", "img.jpg", 44.8, 20.4)
         };
 
-        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), initialKps);
+        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes(), initialKps);
         Should.Throw<EntityValidationException>(() => ((CreatedAtActionResult)controller.Create(dto).Result!).Value);
     }
 
@@ -146,7 +150,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
             new KeyPointDto(-1, "Neg", "Desc", "S", "img.jpg", 44.8, 20.4)
         };
 
-        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), initialKps);
+        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes(), initialKps);
         Should.Throw<EntityValidationException>(() => ((CreatedAtActionResult)controller.Create(dto).Result!).Value);
     }
 
@@ -163,7 +167,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
             new KeyPointDto(1, "B", "Desc", "S", "img2.jpg", 44.9, 20.5)
         };
 
-        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), initialKps);
+        var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes(), initialKps);
         var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
@@ -182,7 +186,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         var authorId = DateTime.UtcNow.Ticks + 7;
         var controller = CreateController(scope, userId: authorId.ToString());
 
-        var createDto = new CreateTourDto("City", "Desc", "Easy", new List<string>());
+        var createDto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes());
         var createdResult = (CreatedAtActionResult)controller.Create(createDto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
@@ -191,7 +195,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
             new KeyPointDto(null, "Appended", "Desc", "S", "img.jpg", 44.8, 20.4)
         };
 
-        var updateDto = new UpdateTourDto(created.Name, created.Description, created.Difficulty, created.Tags.ToList(), created.Price, updateKps);
+        var updateDto = new UpdateTourDto(created.Name, created.Description, created.Difficulty, created.Tags.ToList(), created.Price, created.TravelTimes.ToList(), updateKps);
         var updateResult = controller.Update(created.Id, updateDto);
         updateResult.ShouldBeOfType<OkResult>();
 

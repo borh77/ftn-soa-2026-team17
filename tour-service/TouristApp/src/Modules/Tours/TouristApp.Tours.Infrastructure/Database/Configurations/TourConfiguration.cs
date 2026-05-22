@@ -1,5 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Text.Json;
 using TouristApp.Tours.Core.Domain;
 
 namespace TouristApp.Tours.Infrastructure.Database.Configurations;
@@ -54,6 +57,26 @@ internal class TourConfiguration : IEntityTypeConfiguration<Tour>
             .IsRequired()
             .HasPrecision(18, 2)
             .HasDefaultValue(0m);
+
+        var travelTimesConverter = new ValueConverter<List<TourTravelTime>, string>(
+            v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+            v => string.IsNullOrWhiteSpace(v)
+                ? new List<TourTravelTime>()
+                : JsonSerializer.Deserialize<List<TourTravelTime>>(v, (JsonSerializerOptions?)null) ?? new List<TourTravelTime>());
+
+        var travelTimesComparer = new ValueComparer<List<TourTravelTime>>(
+            (left, right) => JsonSerializer.Serialize(left, (JsonSerializerOptions?)null) == JsonSerializer.Serialize(right, (JsonSerializerOptions?)null),
+            value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null).GetHashCode(),
+            value => value == null ? new List<TourTravelTime>() : value.ToList());
+
+        builder.Property<List<TourTravelTime>>("_travelTimes")
+            .HasColumnName("TravelTimes")
+            .HasColumnType("jsonb")
+            .HasConversion(travelTimesConverter)
+            .IsRequired();
+
+        builder.Property<List<TourTravelTime>>("_travelTimes")
+            .Metadata.SetValueComparer(travelTimesComparer);
 
         builder.HasIndex(t => t.AuthorId)
             .HasDatabaseName("FK_Tours_AuthorId");

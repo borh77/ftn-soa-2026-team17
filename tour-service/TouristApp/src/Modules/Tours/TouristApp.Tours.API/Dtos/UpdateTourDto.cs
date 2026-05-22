@@ -6,5 +6,6 @@ public record UpdateTourDto(
     string Difficulty,
     List<string>? Tags,
     decimal Price,
+    List<TourTravelTimeDto>? TravelTimes = null,
     List<KeyPointDto>? KeyPoints = null
 );
