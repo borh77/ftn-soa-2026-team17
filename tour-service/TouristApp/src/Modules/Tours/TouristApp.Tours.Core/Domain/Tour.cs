@@ -224,6 +224,19 @@ public class Tour : AggregateRoot
     }
 
     /// <summary>
+    /// Ponovo aktivira arhiviranu turu (Archived -> Published).
+    /// </summary>
+    public void Reactivate()
+    {
+        if (Status != TourStatus.Archived)
+            throw new EntityValidationException("Samo arhiviranu turu je moguće ponovo aktivirati.");
+
+        PublishedAt = DateTime.UtcNow;
+        ArchivedAt = null;
+        Status = TourStatus.Published;
+    }
+
+    /// <summary>
     /// Rekalkulator rednih brojeva ključnih tačaka.
     /// </summary>
     private void RecalculateKeyPointOrdinals()

@@ -184,6 +184,20 @@ public class ToursController : ControllerBase
     }
 
     /// <summary>
+    /// POST /api/tours/{tourId}/reactivate – Ponovo aktivira arhiviranu turu (samo guide autoru).
+    /// </summary>
+    [Authorize(Policy = "guidePolicy")]
+    [HttpPost("{tourId}/reactivate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult Reactivate([FromRoute] long tourId)
+    {
+        var authorId = User.PersonId();
+        _tourService.Reactivate(tourId, authorId);
+        return Ok();
+    }
+
+    /// <summary>
     /// DELETE /api/tours/{tourId} – Briše turu samo autor može dok je Draft.
     /// </summary>
     [Authorize(Policy = "guidePolicy")]

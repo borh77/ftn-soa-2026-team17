@@ -192,6 +192,18 @@ public class TourService : ITourService
         _tourRepository.Update(tour);
     }
 
+    public void Reactivate(long tourId, long authorId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        if (tour.AuthorId != authorId)
+            throw new EntityValidationException("Samo autor ture može ponovo aktivirati turu.");
+
+        tour.Reactivate();
+        _tourRepository.Update(tour);
+    }
+
     public void Delete(long tourId, long authorId)
     {
         var tour = _tourRepository.GetById(tourId)

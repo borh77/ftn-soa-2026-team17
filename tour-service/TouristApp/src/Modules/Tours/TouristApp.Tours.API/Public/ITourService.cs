@@ -50,6 +50,11 @@ public interface ITourService
     /// </summary>
     void Archive(long tourId, long authorId);
 
+    /// <summary>
+    /// Ponovo aktivira arhiviranu turu sa verifikacijom autorstva.
+    /// </summary>
+    void Reactivate(long tourId, long authorId);
+
         void Delete(long tourId, long authorId);
 
         void Update(long tourId, long authorId, UpdateTourDto dto);

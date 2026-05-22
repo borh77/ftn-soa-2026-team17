@@ -82,6 +82,34 @@ public class TourStatusTests
     }
 
     [Fact]
+    public void Reactivate_sets_status_back_to_published()
+    {
+        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, DefaultTags(), DefaultTravelTimes());
+        tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
+        tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
+
+        tour.Publish();
+        tour.Archive();
+        var before = DateTime.UtcNow;
+        tour.Reactivate();
+        var after = DateTime.UtcNow;
+
+        tour.Status.ShouldBe(TourStatus.Published);
+        tour.ArchivedAt.ShouldBeNull();
+        tour.PublishedAt.ShouldNotBeNull();
+        (tour.PublishedAt!.Value >= before).ShouldBeTrue();
+        (tour.PublishedAt.Value <= after).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Reactivate_requires_archived_tour()
+    {
+        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, DefaultTags(), DefaultTravelTimes());
+
+        Should.Throw<EntityValidationException>(() => tour.Reactivate());
+    }
+
+    [Fact]
     public void Archive_then_publish_returns_to_published_if_keypoints_exist()
     {
         var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, DefaultTags(), DefaultTravelTimes());
