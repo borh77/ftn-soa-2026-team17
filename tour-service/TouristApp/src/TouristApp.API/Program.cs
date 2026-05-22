@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using TouristApp.API.Grpc;
 using TouristApp.API.Authentification;
 using TouristApp.API.Middleware;
 using TouristApp.API.Startup;
@@ -11,6 +12,7 @@ using TouristApp.Tours.Infrastructure.Database;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddGrpc().AddJsonTranscoding();
 builder.Services.ConfigureSwagger(builder.Configuration);
 const string corsPolicy = "_corsPolicy";
 builder.Services.ConfigureCors(corsPolicy);
@@ -143,8 +145,8 @@ app.UseCors(corsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpsRedirection();
-
 app.MapControllers();
+app.MapGrpcService<ToursGrpcService>();
 
 app.Run();
 

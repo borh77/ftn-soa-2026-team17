@@ -184,7 +184,7 @@ public class ToursController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/tours/{tourId}/reactivate – Ponovo aktivira arhiviranu turu (samo guide autoru).
+    /// POST /api/tours/{tourId}/reactivate – Ponovo aktivira arhiviranu turu (samo autor).
     /// </summary>
     [Authorize(Policy = "guidePolicy")]
     [HttpPost("{tourId}/reactivate")]
