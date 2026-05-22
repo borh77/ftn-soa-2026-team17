@@ -29,9 +29,15 @@ public class TourStatusTests
         tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
 
+        var before = DateTime.UtcNow;
         tour.Publish();
+        var after = DateTime.UtcNow;
 
         tour.Status.ShouldBe(TourStatus.Published);
+        tour.PublishedAt.ShouldNotBeNull();
+        (tour.PublishedAt!.Value >= before).ShouldBeTrue();
+        (tour.PublishedAt.Value <= after).ShouldBeTrue();
+        tour.ArchivedAt.ShouldBeNull();
     }
 
     [Fact]
@@ -42,9 +48,22 @@ public class TourStatusTests
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
 
         tour.Publish();
+        var before = DateTime.UtcNow;
         tour.Archive();
+        var after = DateTime.UtcNow;
 
         tour.Status.ShouldBe(TourStatus.Archived);
+        tour.ArchivedAt.ShouldNotBeNull();
+        (tour.ArchivedAt!.Value >= before).ShouldBeTrue();
+        (tour.ArchivedAt.Value <= after).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Archive_requires_published_tour()
+    {
+        var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, DefaultTags(), DefaultTravelTimes());
+
+        Should.Throw<EntityValidationException>(() => tour.Archive());
     }
 
     [Fact]
@@ -55,10 +74,15 @@ public class TourStatusTests
         tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
 
         tour.Publish();
+        var archivedBefore = DateTime.UtcNow;
         tour.Archive();
+        tour.ArchivedAt.ShouldNotBeNull();
         tour.Publish();
 
         tour.Status.ShouldBe(TourStatus.Published);
+        tour.PublishedAt.ShouldNotBeNull();
+        tour.ArchivedAt.ShouldBeNull();
+        (tour.PublishedAt!.Value >= archivedBefore).ShouldBeTrue();
     }
 
     [Fact]

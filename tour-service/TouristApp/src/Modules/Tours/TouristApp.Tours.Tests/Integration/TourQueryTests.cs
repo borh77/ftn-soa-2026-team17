@@ -48,7 +48,9 @@ public class TourQueryTests : BaseToursIntegrationTest
         var getResult = (OkObjectResult)controller.GetActive(page: 1, pageSize: 10).Result!;
         var tours = getResult.Value.ShouldBeOfType<PagedResult<TourResponseDto>>();
 
-        // All returned tours must have Status Published (mapped as string on DTO)
         tours.TotalCount.ShouldBeGreaterThanOrEqualTo(0);
+        tours.Results.All(t => t.Status == "Published").ShouldBeTrue();
+        tours.Results.All(t => t.KeyPoints.Count <= 1).ShouldBeTrue();
+        tours.Results.Any(t => t.Name == "Dunavska staza" && t.KeyPoints.Count == 1).ShouldBeTrue();
     }
 }

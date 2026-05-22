@@ -13,6 +13,8 @@ public class Tour : AggregateRoot
     public IReadOnlyList<TourTravelTime> TravelTimes => _travelTimes.AsReadOnly();
     public TourStatus Status { get; private set; }
     public decimal Price { get; private set; }
+    public DateTime? PublishedAt { get; private set; }
+    public DateTime? ArchivedAt { get; private set; }
     public IReadOnlyList<KeyPoint> KeyPoints => _keyPoints.AsReadOnly();
 
     private List<string> _tags = new();
@@ -40,6 +42,8 @@ public class Tour : AggregateRoot
         //Status se uvek postavlja na Draft, cena na 0
         Status = TourStatus.Draft;
         Price = 0m;
+        PublishedAt = null;
+        ArchivedAt = null;
     }
 
     /// <summary>
@@ -193,6 +197,8 @@ public class Tour : AggregateRoot
         if (_keyPoints.Count < 2)
             throw new EntityValidationException("Tura mora imati najmanje dve ključne tačke da bi bila publikovana.");
 
+        PublishedAt = DateTime.UtcNow;
+        ArchivedAt = null;
         Status = TourStatus.Published;
     }
 
@@ -201,6 +207,10 @@ public class Tour : AggregateRoot
     /// </summary>
     public void Archive()
     {
+        if (Status != TourStatus.Published)
+            throw new EntityValidationException("Samo objavljenu turu je moguće arhivirati.");
+
+        ArchivedAt = DateTime.UtcNow;
         Status = TourStatus.Archived;
     }
 

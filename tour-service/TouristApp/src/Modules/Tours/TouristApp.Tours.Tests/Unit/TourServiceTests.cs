@@ -104,6 +104,26 @@ public class TourServiceTests
     }
 
     [Fact]
+    public void GetActive_returns_only_first_keypoint_for_public_view()
+    {
+        var tour = Tour.Create(7, "Tura A", "Opis A", TourDifficulty.Medium, new List<string> { "grad" }, DefaultTravelTimes());
+        tour.AddKeyPoint(new KeyPoint(1, "A", "a", "s", "i.jpg", 44, 20));
+        tour.AddKeyPoint(new KeyPoint(2, "B", "b", "s", "j.jpg", 44.1, 20.1));
+        tour.Publish();
+
+        _repoMock
+            .Setup(r => r.GetActive(1, 10))
+            .Returns(new PagedResult<Tour>(new List<Tour> { tour }, 1));
+
+        var result = _service.GetActive(1, 10);
+
+        result.TotalCount.ShouldBe(1);
+        result.Results.Count.ShouldBe(1);
+        result.Results[0].KeyPoints.Count.ShouldBe(1);
+        result.Results[0].KeyPoints[0].OrdinalNo.ShouldBe(1);
+    }
+
+    [Fact]
     public void Delete_by_author_and_draft_calls_repo_delete()
     {
         var tour = Tour.Create(1, "Tura", "Opis", TourDifficulty.Easy, new List<string>(), DefaultTravelTimes());

@@ -18,6 +18,8 @@ public class ToursProfile : Profile
                 src.Tags,
                 src.Status.ToString(),
                 src.Price,
+                src.PublishedAt,
+                src.ArchivedAt,
                 ctx.Mapper.Map<IReadOnlyList<TourTravelTimeDto>>(src.TravelTimes),
                 ctx.Mapper.Map<IReadOnlyList<KeyPointDto>>(src.KeyPoints)
             ));

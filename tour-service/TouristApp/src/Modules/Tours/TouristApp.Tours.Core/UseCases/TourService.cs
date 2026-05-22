@@ -84,8 +84,28 @@ public class TourService : ITourService
     {
         var result = _tourRepository.GetActive(page, pageSize);
         return new PagedResult<TourResponseDto>(
-            result.Results.Select(_mapper.Map<TourResponseDto>).ToList(),
+            result.Results.Select(ToPublicTourResponse).ToList(),
             result.TotalCount);
+    }
+
+    private TourResponseDto ToPublicTourResponse(Tour tour)
+    {
+        var dto = _mapper.Map<TourResponseDto>(tour);
+
+        return new TourResponseDto(
+            dto.Id,
+            dto.AuthorId,
+            dto.Name,
+            dto.Description,
+            dto.Difficulty,
+            dto.Tags,
+            dto.Status,
+            dto.Price,
+            dto.PublishedAt,
+            dto.ArchivedAt,
+            dto.TravelTimes,
+            dto.KeyPoints.Take(1).ToList()
+        );
     }
 
     public void AddKeyPoint(long tourId, long authorId, KeyPointDto dto)
