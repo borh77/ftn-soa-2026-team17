@@ -23,6 +23,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var authorId = DateTime.UtcNow.Ticks;
         var controller = CreateController(scope, userId: authorId.ToString());
+        var tourService = GetTourService(scope);
 
         var dto = new CreateTourDto(
             Name: "City walk",
@@ -32,15 +33,14 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
             TravelTimes: DefaultTravelTimes()
         );
 
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         var kpDto = new KeyPointDto(1, "Museum", "Desc", "Secret", "img.jpg", 44.82, 20.45);
         var addResult = controller.AddKeyPoint(created.Id, kpDto);
         addResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
-        var paged = getResult.Value.ShouldBeOfType<BuildingBlocks.Core.UseCases.PagedResult<TourResponseDto>>();
+        var paged = tourService.GetByAuthor(authorId, 1, 10);
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.KeyPoints.Count.ShouldBe(1);
         tour.KeyPoints[0].Name.ShouldBe("Museum");
@@ -52,9 +52,10 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var authorId = DateTime.UtcNow.Ticks + 1;
         var controller = CreateController(scope, userId: authorId.ToString());
+        var tourService = GetTourService(scope);
 
         var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes());
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         var kpDto = new KeyPointDto(1, "Museum", "Desc", "Secret", "img.jpg", 44.82, 20.45);
@@ -64,8 +65,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         var updateResult = controller.UpdateKeyPoint(created.Id, 1, updateDto);
         updateResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
-        var paged = getResult.Value.ShouldBeOfType<BuildingBlocks.Core.UseCases.PagedResult<TourResponseDto>>();
+        var paged = tourService.GetByAuthor(authorId, 1, 10);
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.KeyPoints[0].Name.ShouldBe("Updated");
         tour.KeyPoints[0].Latitude.ShouldBe(45.0);
@@ -77,9 +77,10 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var authorId = DateTime.UtcNow.Ticks + 2;
         var controller = CreateController(scope, userId: authorId.ToString());
+        var tourService = GetTourService(scope);
 
         var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes());
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         var kpDto = new KeyPointDto(1, "Museum", "Desc", "Secret", "img.jpg", 44.82, 20.45);
@@ -88,8 +89,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         var removeResult = controller.RemoveKeyPoint(created.Id, 1);
         removeResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
-        var paged = getResult.Value.ShouldBeOfType<BuildingBlocks.Core.UseCases.PagedResult<TourResponseDto>>();
+        var paged = tourService.GetByAuthor(authorId, 1, 10);
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.KeyPoints.Count.ShouldBe(0);
     }
@@ -100,6 +100,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var authorId = DateTime.UtcNow.Ticks + 3;
         var controller = CreateController(scope, userId: authorId.ToString());
+        var tourService = GetTourService(scope);
 
         // Provide two keypoints with ordinals out of order to test insertion and ordering
         var initialKps = new List<KeyPointDto>
@@ -109,11 +110,10 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         };
 
         var dto = new CreateTourDto("CityOrder", "Desc", "Easy", new List<string>(), DefaultTravelTimes(), initialKps);
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
-        var paged = getResult.Value.ShouldBeOfType<BuildingBlocks.Core.UseCases.PagedResult<TourResponseDto>>();
+        var paged = tourService.GetByAuthor(authorId, 1, 10);
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.KeyPoints.Count.ShouldBe(2);
         tour.KeyPoints[0].OrdinalNo.ShouldBe(1);
@@ -135,7 +135,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         };
 
         var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes(), initialKps);
-        Should.Throw<EntityValidationException>(() => ((CreatedAtActionResult)controller.Create(dto).Result!).Value);
+        Should.Throw<EntityValidationException>(() => ((ObjectResult)controller.Create(dto).Result!).Value);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         };
 
         var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes(), initialKps);
-        Should.Throw<EntityValidationException>(() => ((CreatedAtActionResult)controller.Create(dto).Result!).Value);
+        Should.Throw<EntityValidationException>(() => ((ObjectResult)controller.Create(dto).Result!).Value);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         };
 
         var dto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes(), initialKps);
-        var createdResult = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var createdResult = (ObjectResult)controller.Create(dto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         // Duplicate ordinals cause shifting: first KeyPointDto(1, "A") is added, then KeyPointDto(1, "B") shifts A to 2
@@ -185,9 +185,10 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var authorId = DateTime.UtcNow.Ticks + 7;
         var controller = CreateController(scope, userId: authorId.ToString());
+        var tourService = GetTourService(scope);
 
         var createDto = new CreateTourDto("City", "Desc", "Easy", new List<string>(), DefaultTravelTimes());
-        var createdResult = (CreatedAtActionResult)controller.Create(createDto).Result!;
+        var createdResult = (ObjectResult)controller.Create(createDto).Result!;
         var created = createdResult.Value.ShouldBeOfType<TourResponseDto>();
 
         var updateKps = new List<KeyPointDto>
@@ -199,8 +200,7 @@ public class TourKeyPointCommandTests : BaseToursIntegrationTest
         var updateResult = controller.Update(created.Id, updateDto);
         updateResult.ShouldBeOfType<OkResult>();
 
-        var getResult = (OkObjectResult)controller.GetByAuthor(1, 10).Result!;
-        var paged = getResult.Value.ShouldBeOfType<BuildingBlocks.Core.UseCases.PagedResult<TourResponseDto>>();
+        var paged = tourService.GetByAuthor(authorId, 1, 10);
         var tour = paged.Results.First(r => r.Id == created.Id);
         tour.KeyPoints.Count.ShouldBe(1);
         tour.KeyPoints[0].Name.ShouldBe("Appended");

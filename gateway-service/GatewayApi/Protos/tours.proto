@@ -1,0 +1,70 @@
+syntax = "proto3";
+package touristapp.tours;
+option csharp_namespace = "TouristApp.Protos.Tours";
+import "Protos/google/api/annotations.proto";
+
+message GetByAuthorRequest {
+  int64 authorId = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message GetActiveRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message Tour {
+  int64 id = 1;
+  int64 authorId = 2;
+  string name = 3;
+  string description = 4;
+  string difficulty = 5;
+  repeated string tags = 6;
+  string status = 7;
+  double price = 8;
+  double routeLengthKm = 9;
+  string publishedAt = 10;
+  string archivedAt = 11;
+  repeated TourTravelTime travelTimes = 12;
+  repeated KeyPoint keyPoints = 13;
+}
+
+message TourTravelTime {
+  string transportType = 1;
+  int32 minutes = 2;
+}
+
+message KeyPoint {
+  int32 ordinalNo = 1;
+  string name = 2;
+  string description = 3;
+  string secretText = 4;
+  string imageUrl = 5;
+  double latitude = 6;
+  double longitude = 7;
+}
+
+message GetByAuthorResponse {
+  repeated Tour tours = 1;
+  int32 total = 2;
+}
+
+message GetActiveResponse {
+  repeated Tour tours = 1;
+  int32 total = 2;
+}
+
+service Tours {
+  rpc GetByAuthor (GetByAuthorRequest) returns (GetByAuthorResponse) {
+    option (google.api.http) = {
+      get: "/tours"
+    };
+  }
+
+  rpc GetActive (GetActiveRequest) returns (GetActiveResponse) {
+    option (google.api.http) = {
+      get: "/tours/active"
+    };
+  }
+}

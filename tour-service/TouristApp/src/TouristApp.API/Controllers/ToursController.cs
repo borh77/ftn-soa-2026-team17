@@ -45,36 +45,7 @@ public class ToursController : ControllerBase
     {
         var authorId = User.PersonId();
         var tour = _tourService.Create(authorId, dto);
-        return CreatedAtAction(nameof(GetByAuthor), new { authorId = tour.AuthorId }, tour);
-    }
-
-    /// <summary>
-    /// GET /api/tours?authorId={authorId} – Lista tura određenog autora (samo autoru).
-    /// Prikazuje samo ture tog autora.
-    /// </summary>
-    [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<TourResponseDto>), StatusCodes.Status200OK)]
-    public ActionResult<PagedResult<TourResponseDto>> GetByAuthor(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var authorId = User.PersonId();
-        var tours = _tourService.GetByAuthor(authorId, page, pageSize);
-        return Ok(tours);
-    }
-
-    /// <summary>
-    /// GET /api/tours/active – Lista svih aktivnih (publikovanih) tura.
-    /// Prikazuje sve ture u stanju Published.
-    /// </summary>
-    [HttpGet("active")]
-    [ProducesResponseType(typeof(PagedResult<TourResponseDto>), StatusCodes.Status200OK)]
-    public ActionResult<PagedResult<TourResponseDto>> GetActive(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var tours = _tourService.GetActive(page, pageSize);
-        return Ok(tours);
+        return StatusCode(StatusCodes.Status201Created, tour);
     }
 
     /// <summary>
@@ -184,7 +155,7 @@ public class ToursController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/tours/{tourId}/reactivate – Ponovo aktivira arhiviranu turu (samo guide autoru).
+    /// POST /api/tours/{tourId}/reactivate – Ponovo aktivira arhiviranu turu (samo autor).
     /// </summary>
     [Authorize(Policy = "guidePolicy")]
     [HttpPost("{tourId}/reactivate")]

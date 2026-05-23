@@ -25,4 +25,7 @@ public abstract class BaseToursIntegrationTest : BaseWebIntegrationTest<ToursTes
         {
             ControllerContext = BuildContext(userId)
         };
+
+    protected static ITourService GetTourService(IServiceScope scope) =>
+        scope.ServiceProvider.GetRequiredService<ITourService>();
 }

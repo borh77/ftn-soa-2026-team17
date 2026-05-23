@@ -30,7 +30,7 @@ public class TourCommandTests : BaseToursIntegrationTest
             TravelTimes: DefaultTravelTimes()
         );
 
-        var result = (CreatedAtActionResult)controller.Create(dto).Result!;
+        var result = (ObjectResult)controller.Create(dto).Result!;
 
         result.StatusCode.ShouldBe(201);
         var created = result.Value.ShouldBeOfType<TourResponseDto>();

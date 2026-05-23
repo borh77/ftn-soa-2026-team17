@@ -1,0 +1,10 @@
+﻿
+
+openapi    : 3.0.1
+info       : @{title=Gateway API; version=v1}
+paths      : @{/tours=; /tours/active=}
+components : @{securitySchemes=}
+security   : {@{Bearer=System.Object[]}}
+
+
+
