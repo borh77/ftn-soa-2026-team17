@@ -129,6 +129,7 @@ services:
     depends_on:
       - stakeholders-db
       - blog-db
+      - tours-db
     networks:
       - soa-network
 

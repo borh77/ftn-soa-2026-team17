@@ -96,6 +96,43 @@ namespace TouristApp.Blog.Infrastructure.Migrations
                 {
                     b.Navigation("Comments");
                 });
+            modelBuilder.Entity("TouristApp.Blog.Core.Domain.BlogLike", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("BlogId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("LikedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlogId");
+
+                    b.ToTable("blog_likes", "blog");
+                });
+
+            modelBuilder.Entity("TouristApp.Blog.Core.Domain.BlogLike", b =>
+                {
+                    b.HasOne("TouristApp.Blog.Core.Domain.Blog", null)
+                        .WithMany("Likes")
+                        .HasForeignKey("BlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TouristApp.Blog.Core.Domain.Blog", b =>
+                {
+                    b.Navigation("Likes");
+                });
 #pragma warning restore 612, 618
         }
     }
