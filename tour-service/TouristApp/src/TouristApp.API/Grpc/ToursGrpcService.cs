@@ -19,7 +19,32 @@ public class ToursGrpcService : ToursProto.ToursBase
 
     public override Task<GetByAuthorResponse> GetByAuthor(GetByAuthorRequest request, ServerCallContext context)
     {
-        var result = _tourService.GetByAuthor(request.AuthorId, request.Page, request.PageSize);
+        // Authorization: only allow admin or the author himself to request by authorId
+        var httpContext = context.GetHttpContext();
+        var user = httpContext?.User;
+        if (user == null || user.Identity == null || !user.Identity.IsAuthenticated)
+        {
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Authentication required"));
+        }
+
+        // Admins may request any author
+        var isAdmin = user.IsInRole("ADMIN");
+        var callerId = user.PersonId();
+
+        long effectiveAuthorId = request.AuthorId;
+        if (!isAdmin)
+        {
+            // If no authorId provided, default to caller
+            if (effectiveAuthorId == 0)
+                effectiveAuthorId = callerId;
+
+            if (effectiveAuthorId != callerId)
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "Only the author or an admin can request this resource."));
+            }
+        }
+
+        var result = _tourService.GetByAuthor(effectiveAuthorId, request.Page, request.PageSize);
         return Task.FromResult(new GetByAuthorResponse
         {
             Tours = { result.Results.Select(ToGrpcTour) },

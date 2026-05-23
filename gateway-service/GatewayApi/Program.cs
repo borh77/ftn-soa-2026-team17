@@ -1,6 +1,11 @@
 using TouristApp.Protos.Tours;
 using ToursProto = TouristApp.Protos.Tours.Tours;
 using GatewayApi.Grpc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.OpenApi.Models;
+using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,10 +13,44 @@ AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport
 
 var grpcUrl = builder.Configuration["Grpc:TourServiceUrl"] ?? "http://tour-service:81";
 builder.Services.AddGrpc().AddJsonTranscoding();
+// Authentication
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "";
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    });
+builder.Services.AddAuthorization();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new() { Title = "Gateway API", Version = "v1" });
+    options.DocumentFilter<GatewayApi.Swagger.TranscodedToursDocumentFilter>();
+
+    // Swagger Bearer auth
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer {token}'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            new List<string>()
+        }
+    });
 });
 builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 builder.Services.AddCors(options =>
@@ -37,51 +76,12 @@ app.UseSwaggerUI(options =>
 
 app.UseCors("gateway-cors");
 
-app.MapGet("/tours", async (
-    long authorId,
-    int page,
-    int pageSize,
-    ToursProto.ToursClient toursClient) =>
-{
-    var response = await toursClient.GetByAuthorAsync(new GetByAuthorRequest
-    {
-        AuthorId = authorId,
-        Page = page,
-        PageSize = pageSize
-    });
+app.UseAuthentication();
+app.UseAuthorization();
 
-    return Results.Ok(new
-    {
-        tours = response.Tours,
-        total = response.Total
-    });
-})
-.WithName("GetToursByAuthor")
-.WithSummary("Get tours by author")
-.WithDescription("Gateway REST endpoint that forwards to gRPC GetByAuthor.");
 
-app.MapGet("/tours/active", async (
-    int page,
-    int pageSize,
-    ToursProto.ToursClient toursClient) =>
-{
-    var response = await toursClient.GetActiveAsync(new GetActiveRequest
-    {
-        Page = page,
-        PageSize = pageSize
-    });
 
-    return Results.Ok(new
-    {
-        tours = response.Tours,
-        total = response.Total
-    });
-})
-.WithName("GetActiveTours")
-.WithSummary("Get active tours")
-.WithDescription("Gateway REST endpoint that forwards to gRPC GetActive.");
-
-app.MapGrpcService<ToursGatewayService>();
+app.MapGrpcService<ToursGatewayService>().RequireAuthorization();
 app.MapReverseProxy();
 app.MapFallback(() => Results.NotFound("Gateway: unknown service"));
 
