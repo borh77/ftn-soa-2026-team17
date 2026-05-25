@@ -1,5 +1,6 @@
 using TouristApp.Protos.Tours;
 using ToursProto = TouristApp.Protos.Tours.Tours;
+using PurchaseProto = Purchase.PurchaseGrpcService;
 using GatewayApi.Grpc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -12,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
 var grpcUrl = builder.Configuration["Grpc:TourServiceUrl"] ?? "http://tour-service:81";
+var purchaseGrpcUrl = builder.Configuration["Grpc:PurchaseServiceUrl"] ?? "http://purchase-service:9091";
 builder.Services.AddGrpc().AddJsonTranscoding();
 // Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "";
@@ -30,6 +32,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddControllers();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new() { Title = "Gateway API", Version = "v1" });
@@ -65,6 +68,11 @@ builder.Services.AddSingleton(sp =>
     var channel = Grpc.Net.Client.GrpcChannel.ForAddress(grpcUrl);
     return new ToursProto.ToursClient(channel);
 });
+builder.Services.AddSingleton(sp =>
+{
+    var channel = Grpc.Net.Client.GrpcChannel.ForAddress(purchaseGrpcUrl);
+    return new PurchaseProto.PurchaseGrpcServiceClient(channel);
+});
 
 var app = builder.Build();
 
@@ -80,7 +88,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 
-
+app.MapControllers();
 app.MapGrpcService<ToursGatewayService>().RequireAuthorization();
 app.MapReverseProxy();
 app.MapFallback(() => Results.NotFound("Gateway: unknown service"));

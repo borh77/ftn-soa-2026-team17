@@ -205,6 +205,7 @@ services:
       TOUR_SERVICE_URL: http://tour-service:80
     ports:
       - "8086:8080"
+      - "9091:9091"
     networks:
       - soa-network
 
@@ -224,6 +225,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - Grpc__TourServiceUrl=http://tour-service:81
+      - Grpc__PurchaseServiceUrl=http://purchase-service:9091
     ports:
       - "8082:8080"
     networks:
