@@ -6,7 +6,6 @@ import com.soa.purchase.dto.TourPurchaseTokenResponse;
 import com.soa.purchase.security.SecurityUtils;
 import com.soa.purchase.service.PurchaseService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

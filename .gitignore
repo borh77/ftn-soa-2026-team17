@@ -576,3 +576,7 @@ src/environments/environment*.ts
 # Temporary files
 tmp/
 temp/
+
+# Java / Maven
+target/
+*.class
