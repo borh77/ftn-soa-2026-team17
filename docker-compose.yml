@@ -173,6 +173,41 @@ services:
     networks:
       - soa-network
 
+  purchase-db:
+    image: postgres:16
+    container_name: purchase-db
+    environment:
+      POSTGRES_DB: purchase_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - purchase_postgres_data:/var/lib/postgresql/data
+    networks:
+      - soa-network
+
+  purchase-service:
+    build:
+      context: ./purchase-service
+      dockerfile: Dockerfile
+    container_name: purchase-service
+    restart: on-failure
+    depends_on:
+      - purchase-db
+      - tour-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://purchase-db:5432/purchase_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: pass
+      JWT_SECRET: my-super-secret-jwt-key-2026-test
+      JWT_EXPIRATION: 86400000
+      TOUR_SERVICE_URL: http://tour-service:80
+    ports:
+      - "8086:8080"
+    networks:
+      - soa-network
+
   gateway:
     build:
       context: ./gateway-service/GatewayApi
@@ -184,6 +219,7 @@ services:
       - stakeholders-service
       - tour-service
       - follower-service
+      - purchase-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -199,6 +235,7 @@ volumes:
   follower_neo4j_data:
   blog_mongo_data:
   tours_postgres_data:
+  purchase_postgres_data:
 
 networks:
   soa-network:

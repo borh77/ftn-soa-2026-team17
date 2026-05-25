@@ -202,7 +202,7 @@ public class Tour : AggregateRoot
     /// <summary>
     /// Publikuje turu (Draft -> Published) samo ako sadrži najmanje dve ključne tačke.
     /// </summary>
-    public void Publish()
+    public void Publish(decimal price)
     {
         ValidateDetails(Name, Description);
 
@@ -214,6 +214,10 @@ public class Tour : AggregateRoot
         if (_keyPoints.Count < 2)
             throw new EntityValidationException("Tura mora imati najmanje dve ključne tačke da bi bila publikovana.");
 
+        if (price <= 0)
+            throw new EntityValidationException("Cena ture mora biti veća od 0.");
+
+        Price = price;
         PublishedAt = DateTime.UtcNow;
         ArchivedAt = null;
         Status = TourStatus.Published;

@@ -173,7 +173,7 @@ public class TourService : ITourService
         _tourRepository.Update(tour);
     }
 
-    public void Publish(long tourId, long authorId)
+    public void Publish(long tourId, long authorId, decimal price)
     {
         var tour = _tourRepository.GetById(tourId)
             ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
@@ -181,7 +181,7 @@ public class TourService : ITourService
         if (tour.AuthorId != authorId)
             throw new EntityValidationException("Samo autor ture može objaviti turu.");
 
-        tour.Publish();
+        tour.Publish(price);
         _tourRepository.Update(tour);
     }
 
@@ -278,5 +278,20 @@ public class TourService : ITourService
             tour.SetRouteLengthKm(dto.RouteLengthKm.Value);
 
         _tourRepository.Update(tour);
+    }
+
+    public TourPurchaseInfoDto GetPurchaseInfo(long tourId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        return new TourPurchaseInfoDto
+        {
+            Id = tour.Id,
+            Name = tour.Name,
+            Price = tour.Price,
+            Status = tour.Status.ToString(),
+            CanBePurchased = tour.Status == TourStatus.Published
+        };
     }
 }

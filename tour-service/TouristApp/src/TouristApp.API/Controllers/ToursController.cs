@@ -33,6 +33,15 @@ public class ToursController : ControllerBase
     [HttpGet("ping")]
     public ActionResult<string> Ping() => Ok(_healthService.Ping());
 
+    [AllowAnonymous]
+    [HttpGet("{tourId}/purchase-info")]
+    [ProducesResponseType(typeof(TourPurchaseInfoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult<TourPurchaseInfoDto> GetPurchaseInfo([FromRoute] long tourId)
+    {
+        return Ok(_tourService.GetPurchaseInfo(tourId));
+    }
+    
     /// <summary>
     /// POST /api/tours – Kreiranje nove ture (samo guide).
     /// Status se automatski postavlja na Draft, cena na 0.
@@ -134,10 +143,12 @@ public class ToursController : ControllerBase
     [HttpPost("{tourId}/publish")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public ActionResult Publish([FromRoute] long tourId)
+    public ActionResult Publish(
+        [FromRoute] long tourId,
+        [FromBody] PublishTourDto dto)
     {
         var authorId = User.PersonId();
-        _tourService.Publish(tourId, authorId);
+        _tourService.Publish(tourId, authorId, dto.Price);
         return Ok();
     }
 

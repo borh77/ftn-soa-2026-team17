@@ -43,7 +43,7 @@ public interface ITourService
     /// <summary>
     /// Objavljuje turu sa verifikacijom autorstva.
     /// </summary>
-    void Publish(long tourId, long authorId);
+    void Publish(long tourId, long authorId, decimal price);
 
     /// <summary>
     /// Arhivira turu sa verifikacijom autorstva.
@@ -58,4 +58,6 @@ public interface ITourService
         void Delete(long tourId, long authorId);
 
         void Update(long tourId, long authorId, UpdateTourDto dto);
+
+    TourPurchaseInfoDto GetPurchaseInfo(long tourId);
 }
