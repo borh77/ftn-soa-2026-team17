@@ -19,6 +19,11 @@ export interface KeyPoint {
   longitude: number;
 }
 
+export interface TourTravelTime {
+  transportType: 'Walking' | 'Bicycle' | 'Car';
+  minutes: number;
+}
+
 export interface Tour {
   id: number;
   authorId: number;
@@ -28,6 +33,10 @@ export interface Tour {
   tags: string[];
   status: string;
   price: number;
+  routeLengthKm: number;
+  publishedAt: string | null;
+  archivedAt: string | null;
+  travelTimes: TourTravelTime[];
   keyPoints: KeyPoint[];
 }
 
@@ -36,6 +45,7 @@ export interface CreateTourRequest {
   description: string;
   difficulty: string;
   tags: string[];
+  travelTimes: TourTravelTime[];
   keyPoints: KeyPoint[];
 }
 
@@ -109,6 +119,18 @@ export class TourService {
 
   publishTour(tourId: number): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/${tourId}/publish`, null, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  archiveTour(tourId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/archive`, null, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  reactivateTour(tourId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/reactivate`, null, {
       headers: this.getAuthHeaders()
     });
   }

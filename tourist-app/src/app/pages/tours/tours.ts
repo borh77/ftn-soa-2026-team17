@@ -12,7 +12,13 @@ import {
 import { FormsModule } from '@angular/forms';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth';
-import { KeyPoint, Tour, TourReview, TourService } from '../../core/services/tour';
+import { KeyPoint, Tour, TourReview, TourService, TourTravelTime } from '../../core/services/tour';
+
+interface TourTravelTimeForm {
+  walkingMinutes: number | null;
+  bicycleMinutes: number | null;
+  carMinutes: number | null;
+}
 
 interface ReviewForm {
   rating: number;
@@ -64,11 +70,17 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     description: '',
     difficulty: 'Easy',
     tagsText: '',
+    travelTimes: {
+      walkingMinutes: null,
+      bicycleMinutes: null,
+      carMinutes: null
+    } as TourTravelTimeForm,
     keyPoints: [
       this.emptyKeyPoint(1),
       this.emptyKeyPoint(2)
     ]
   };
+  showCreateModal = false;
 
   private readonly isBrowser: boolean;
   private leaflet: any;
@@ -136,6 +148,13 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.message = '';
     this.errorMessage = '';
 
+    const travelTimes = this.buildTravelTimes();
+
+    if (travelTimes.length === 0) {
+      this.errorMessage = 'Unesi bar jedno vreme obilaska za peške, bicikl ili automobil.';
+      return;
+    }
+
     const keyPoints = this.newTour.keyPoints
       .filter(point => point.name.trim() || point.description.trim())
       .map((point, index) => ({
@@ -154,11 +173,13 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       description: this.newTour.description.trim(),
       difficulty: this.newTour.difficulty,
       tags: this.splitLinesOrCommas(this.newTour.tagsText),
+      travelTimes,
       keyPoints
     }).subscribe({
       next: tour => {
         this.message = `Tura "${tour.name}" je sacuvana kao draft.`;
         this.resetTourForm();
+        this.showCreateModal = false;
         this.loadGuideTours();
       },
       error: () => {
@@ -178,6 +199,36 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       },
       error: () => {
         this.errorMessage = 'Tura nije publishovana. Backend trazi validnu turu sa dovoljno kljucnih tacaka.';
+      }
+    });
+  }
+
+  archiveTour(tour: Tour): void {
+    this.message = '';
+    this.errorMessage = '';
+
+    this.tourService.archiveTour(tour.id).subscribe({
+      next: () => {
+        this.message = `Tura "${tour.name}" je arhivirana.`;
+        this.loadGuideTours();
+      },
+      error: () => {
+        this.errorMessage = 'Tura nije arhivirana. Arhiviranje je dozvoljeno samo za objavljene ture.';
+      }
+    });
+  }
+
+  reactivateTour(tour: Tour): void {
+    this.message = '';
+    this.errorMessage = '';
+
+    this.tourService.reactivateTour(tour.id).subscribe({
+      next: () => {
+        this.message = `Tura "${tour.name}" je ponovo aktivirana.`;
+        this.loadGuideTours();
+      },
+      error: () => {
+        this.errorMessage = 'Tura nije reaktivirana. Reaktivacija je dozvoljena samo za arhivirane ture.';
       }
     });
   }
@@ -724,6 +775,11 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       description: '',
       difficulty: 'Easy',
       tagsText: '',
+      travelTimes: {
+        walkingMinutes: null,
+        bicycleMinutes: null,
+        carMinutes: null
+      },
       keyPoints: [
         this.emptyKeyPoint(1),
         this.emptyKeyPoint(2)
@@ -833,6 +889,19 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
 
   private hasValidCoordinates(point: KeyPoint): boolean {
     return Number.isFinite(Number(point.latitude)) && Number.isFinite(Number(point.longitude));
+  }
+
+  private buildTravelTimes(): TourTravelTime[] {
+    return [
+      { transportType: 'Walking', minutes: this.newTour.travelTimes.walkingMinutes },
+      { transportType: 'Bicycle', minutes: this.newTour.travelTimes.bicycleMinutes },
+      { transportType: 'Car', minutes: this.newTour.travelTimes.carMinutes }
+    ]
+      .filter((item): item is TourTravelTime => typeof item.minutes === 'number' && item.minutes > 0);
+  }
+
+  visiblePublicKeyPoints(tour: Tour): KeyPoint[] {
+    return tour.keyPoints.slice(0, 1);
   }
 
   private backendDetail(error: HttpErrorResponse): string {
