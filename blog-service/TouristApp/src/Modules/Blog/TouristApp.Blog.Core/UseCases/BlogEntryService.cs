@@ -29,11 +29,17 @@ public class BlogEntryService : IBlogEntryService
         return _mapper.Map<BlogEntryDto>(_blogRepository.Create(blog));
     }
 
-    public PagedResult<BlogEntryDto> GetPaged(int page, int pageSize)
+    public PagedResult<BlogEntryDto> GetPaged(int page, int pageSize, long? currentUserId = null)
     {
         var result = _blogRepository.GetPaged(page, pageSize);
+
         return new PagedResult<BlogEntryDto>(
-            result.Results.Select(b => _mapper.Map<BlogEntryDto>(b)).ToList(),
+            result.Results.Select(b =>
+            {
+                var dto = _mapper.Map<BlogEntryDto>(b);
+                dto.IsLikedByCurrentUser = currentUserId.HasValue && b.IsLikedByUser(currentUserId.Value);
+                return dto;
+            }).ToList(),
             result.TotalCount);
     }
 

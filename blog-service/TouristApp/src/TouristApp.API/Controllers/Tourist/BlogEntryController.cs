@@ -23,7 +23,7 @@ public class BlogEntryController : ControllerBase
 
     [HttpGet]
     public ActionResult<PagedResult<BlogEntryDto>> GetAll([FromQuery] int page, [FromQuery] int pageSize) =>
-        Ok(_blogService.GetPaged(page, pageSize));
+        Ok(_blogService.GetPaged(page, pageSize, User.PersonId()));
 
   
 
