@@ -1,0 +1,197 @@
+<section class="blog-page">
+  <div class="page-header hero-strip">
+    <div>
+      <p class="eyebrow">Blog</p>
+      <h1>
+        @if (role === 'TOURIST') {
+          Traveller stories
+        } @else {
+          Blog feed
+        }
+      </h1>
+      <p class="header-copy">
+        Markdown blog posts, comments, and likes in one place.
+      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="loadBlogs()">Refresh</button>
+  </div>
+
+  @if (message) {
+    <p class="notice success">{{ message }}</p>
+  }
+
+  @if (errorMessage) {
+    <p class="notice error">{{ errorMessage }}</p>
+  }
+
+  @if (isLoading) {
+    <p class="muted">Loading blog posts...</p>
+  }
+
+  @if (role === 'TOURIST') {
+    <section class="workspace">
+      <div class="workspace-header">
+        <div class="section-title">
+          <h2>Create blog</h2>
+          <span>Markdown supported</span>
+        </div>
+
+        <button class="primary-button" type="button" (click)="showCreateForm = !showCreateForm">
+          @if (showCreateForm) {
+            Close form
+          } @else {
+            Create blog
+          }
+        </button>
+      </div>
+
+      @if (showCreateForm) {
+        <form class="blog-form" (ngSubmit)="createBlog()">
+          <div class="form-grid">
+            <label>
+              Title
+              <input type="text" name="title" [(ngModel)]="newBlog.title" required />
+            </label>
+
+            <label>
+              Creation date
+              <input type="datetime-local" name="creationDate" [(ngModel)]="newBlog.creationDate" required />
+            </label>
+          </div>
+
+          <label>
+            Description
+            <textarea
+              name="description"
+              rows="8"
+              [(ngModel)]="newBlog.description"
+              placeholder="Write your post in Markdown"
+              required
+            ></textarea>
+          </label>
+
+          <div class="markdown-preview-grid">
+            <div>
+              <div class="section-title compact">
+                <h3>Live preview</h3>
+                <span>Rendered markdown</span>
+              </div>
+              <article class="markdown-preview" [innerHTML]="renderMarkdown(newBlog.description)"></article>
+            </div>
+
+            <div>
+              <label>
+                Image URLs
+                <textarea
+                  name="imageUrlsText"
+                  rows="8"
+                  [(ngModel)]="newBlog.imageUrlsText"
+                  placeholder="https://example.com/photo1.jpg, https://example.com/photo2.jpg"
+                ></textarea>
+              </label>
+              <p class="muted small-copy">Optional. Separate image URLs with a comma or a new line.</p>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="primary-button" type="submit" [disabled]="createSubmitting">
+              @if (createSubmitting) {
+                Saving...
+              } @else {
+                Save blog
+              }
+            </button>
+            <button class="ghost-button" type="button" (click)="showCreateForm = false">Cancel</button>
+          </div>
+        </form>
+      }
+
+      <section class="blog-list">
+        @for (blog of blogs; track blog.id) {
+          <article class="blog-card">
+            <div class="blog-card-head">
+              <div>
+                <h2>{{ blog.title }}</h2>
+                <p>Created {{ blog.creationDate | date:'medium' }}</p>
+              </div>
+
+              <div class="blog-stats">
+                <span>{{ blog.likeCount }} likes</span>
+                <button class="primary-button small-button" type="button" (click)="toggleLike(blog)" [disabled]="likeSubmitting[blog.id]">
+                  @if (likeSubmitting[blog.id]) {
+                    ...
+                  } @else if (blog.isLikedByCurrentUser) {
+                    Unlike
+                  } @else {
+                    Like
+                  }
+                </button>
+              </div>
+            </div>
+
+            <div class="blog-body" [innerHTML]="renderMarkdown(blog.description)"></div>
+
+            @if (blog.images.length) {
+              <div class="image-grid">
+                @for (image of blog.images; track $index) {
+                  <img [src]="image" [alt]="blogImageAlt($index, blog.title)" />
+                }
+              </div>
+            }
+
+            <div class="comments-panel">
+              <div class="section-title compact">
+                <h3>Comments</h3>
+                <span>{{ commentCount(blog) }} total</span>
+              </div>
+
+              <div class="comment-list">
+                @for (comment of blog.comments; track comment.id) {
+                  <article class="comment-card">
+                    <div class="comment-meta">
+                      <strong>User #{{ comment.authorId }}</strong>
+                      <span>{{ comment.createdAt | date:'medium' }}</span>
+                    </div>
+                    <p>{{ comment.text }}</p>
+                    @if (comment.lastModifiedAt) {
+                      <small>Edited {{ comment.lastModifiedAt | date:'medium' }}</small>
+                    }
+                  </article>
+                } @empty {
+                  <p class="muted">No comments yet.</p>
+                }
+              </div>
+
+              <form class="comment-form" (ngSubmit)="submitComment(blog)">
+                <label>
+                  Add comment
+                  <textarea
+                    [name]="'comment-' + blog.id"
+                    rows="3"
+                    [(ngModel)]="commentDrafts[blog.id]"
+                    placeholder="Write a short comment"
+                  ></textarea>
+                </label>
+
+                <div class="form-actions">
+                  <button class="primary-button" type="submit" [disabled]="commentSubmitting[blog.id]">
+                    @if (commentSubmitting[blog.id]) {
+                      Posting...
+                    } @else {
+                      Post comment
+                    }
+                  </button>
+                </div>
+              </form>
+            </div>
+          </article>
+        } @empty {
+          <p class="muted">Nema objavljenih blogova.</p>
+        }
+      </section>
+    </section>
+  } @else {
+    <p class="muted">Blog feed je dostupan turistima.</p>
+  }
+</section>
