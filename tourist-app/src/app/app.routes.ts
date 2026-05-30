@@ -5,6 +5,7 @@ import { Login } from './pages/login/login';
 import { Register } from './pages/register/register';
 import { Profile } from './pages/profile/profile';
 import { AdminUsers } from './pages/admin-users/admin-users';
+import { Blogs } from './pages/blogs/blogs';
 import { PositionSimulator } from './pages/position-simulator/position-simulator';
 import { Tours } from './pages/tours/tours';
 
@@ -13,6 +14,7 @@ export const routes: Routes = [
   { path: 'login', component: Login },
   { path: 'register', component: Register },
   { path: 'profile', component: Profile },
+  { path: 'blogs', component: Blogs },
   { path: 'tours', component: Tours },
   { path: 'admin/users', component: AdminUsers },
   { path: 'position-simulator', component: PositionSimulator },

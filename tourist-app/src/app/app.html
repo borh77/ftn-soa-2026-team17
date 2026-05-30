@@ -14,6 +14,9 @@
 
     @if (authService.isLoggedIn()) {
       <a routerLink="/profile">Profile</a>
+      @if (authService.getUserRole() === 'TOURIST') {
+        <a routerLink="/blogs">Blogs</a>
+      }
       <a routerLink="/tours">Tours</a>
       <a routerLink="/position-simulator">Position simulator</a>
 
