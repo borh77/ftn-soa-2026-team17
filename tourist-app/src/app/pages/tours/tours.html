@@ -35,120 +35,154 @@
 
   @if (role === 'GUIDE') {
     <section class="workspace">
-      <form class="tour-form" (ngSubmit)="createTour()">
-        <div class="section-title">
-          <h2>Create tour</h2>
-          <span>Draft first, publish after review</span>
-        </div>
+      <div class="workspace-header">
+        <button class="primary-button" type="button" (click)="showCreateModal = true">Create tour</button>
+      </div>
 
-        <label>
-          Name
-          <input type="text" name="name" [(ngModel)]="newTour.name" required />
-        </label>
-
-        <label>
-          Description
-          <textarea name="description" rows="4" [(ngModel)]="newTour.description" required></textarea>
-        </label>
-
-        <div class="form-grid">
-          <label>
-            Difficulty
-            <select name="difficulty" [(ngModel)]="newTour.difficulty">
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
-            </select>
-          </label>
-
-          <label>
-            Tags
-            <input
-              type="text"
-              name="tags"
-              [(ngModel)]="newTour.tagsText"
-              placeholder="history, nature, family"
-            />
-          </label>
-        </div>
-
-        <div class="section-title compact">
-          <h3>Key points</h3>
-          <button class="ghost-button" type="button" (click)="addKeyPoint()">Add point</button>
-        </div>
-
-        <div class="map-editor">
-          <div class="map-copy">
-            <strong>Draw the route on the map</strong>
-            <span>Select a point below, then click the map to set its position.</span>
-          </div>
-          <div id="draft-keypoint-map" class="route-map"></div>
-        </div>
-
-        @for (point of newTour.keyPoints; track $index) {
-          <div class="keypoint-editor" [class.active]="selectedDraftPointIndex === $index">
-            <div class="keypoint-head">
-              <strong>Point {{ $index + 1 }}</strong>
-              <div class="keypoint-actions">
-                <button class="ghost-button small" type="button" (click)="selectDraftPoint($index)">Select on map</button>
-                <button class="icon-button small" type="button" (click)="removeKeyPoint($index)">Remove</button>
-              </div>
+      @if (showCreateModal) {
+        <div class="modal-overlay" (click)="showCreateModal = false" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:9999;padding:24px;">
+          <div class="modal" (click)="$event.stopPropagation()" style="width:100%;max-width:none;height:100%;background:#fff;overflow:auto;border-radius:8px;padding:24px;box-sizing:border-box;">
+            <div class="section-title">
+              <h2>Create tour</h2>
+              <span>Draft first, publish after review</span>
             </div>
 
-            <div class="form-grid">
+            <button class="icon-button modal-close" type="button" (click)="showCreateModal = false">Close</button>
+
+            <form class="tour-form" (ngSubmit)="createTour()">
               <label>
                 Name
-                <input type="text" [name]="'kp-name-' + $index" [(ngModel)]="point.name" required />
+                <input type="text" name="name" [(ngModel)]="newTour.name" required />
               </label>
 
               <label>
-                Image URL
-                <input type="url" [name]="'kp-image-' + $index" [(ngModel)]="point.imageUrl" />
+                Description
+                <textarea name="description" rows="4" [(ngModel)]="newTour.description" required></textarea>
               </label>
-            </div>
 
-            <div
-              class="keypoint-drop-zone"
-              [class.active]="keyPointImageDropActive['draft-' + $index]"
-              (dragover)="onKeyPointImageDragOver($event, 'draft-' + $index)"
-              (dragleave)="onKeyPointImageDragLeave($event, 'draft-' + $index)"
-              (drop)="onDraftKeyPointImageDrop($event, point, 'draft-' + $index)"
-            >
-              @if (point.imageUrl) {
-                <img [src]="point.imageUrl" alt="Key point preview" />
-              }
-              <div>
-                <strong>Drop point image</strong>
-                <span>Image file or image URL</span>
+              <div class="form-grid">
+                <label>
+                  Difficulty
+                  <select name="difficulty" [(ngModel)]="newTour.difficulty">
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
+                </label>
+
+                <label>
+                  Tags
+                  <input
+                    type="text"
+                    name="tags"
+                    [(ngModel)]="newTour.tagsText"
+                    placeholder="history, nature, family"
+                  />
+                </label>
               </div>
-            </div>
 
-            <label>
-              Description
-              <textarea [name]="'kp-description-' + $index" rows="2" [(ngModel)]="point.description"></textarea>
-            </label>
+              <div class="section-title compact">
+                <h3>Travel times</h3>
+                <span>Add at least one transport option</span>
+              </div>
 
-            <label>
-              Secret
-              <input type="text" [name]="'kp-secret-' + $index" [(ngModel)]="point.secretText" />
-            </label>
+              <div class="form-grid">
+                <label>
+                  Walking minutes
+                  <input type="number" min="1" name="walkingMinutes" [(ngModel)]="newTour.travelTimes.walkingMinutes" />
+                </label>
 
-            <div class="form-grid">
-              <label>
-                Latitude
-                <input type="number" step="0.000001" [name]="'kp-lat-' + $index" [(ngModel)]="point.latitude" (ngModelChange)="onDraftCoordinateChange()" />
-              </label>
+                <label>
+                  Bicycle minutes
+                  <input type="number" min="1" name="bicycleMinutes" [(ngModel)]="newTour.travelTimes.bicycleMinutes" />
+                </label>
 
-              <label>
-                Longitude
-                <input type="number" step="0.000001" [name]="'kp-lon-' + $index" [(ngModel)]="point.longitude" (ngModelChange)="onDraftCoordinateChange()" />
-              </label>
-            </div>
+                <label>
+                  Car minutes
+                  <input type="number" min="1" name="carMinutes" [(ngModel)]="newTour.travelTimes.carMinutes" />
+                </label>
+              </div>
+
+              <div class="section-title compact">
+                <h3>Key points</h3>
+                <button class="ghost-button" type="button" (click)="addKeyPoint()">Add point</button>
+              </div>
+
+              <div class="map-editor">
+                <div class="map-copy">
+                  <strong>Draw the route on the map</strong>
+                  <span>Select a point below, then click the map to set its position.</span>
+                </div>
+                <div id="draft-keypoint-map" class="route-map"></div>
+              </div>
+
+              @for (point of newTour.keyPoints; track $index) {
+                <div class="keypoint-editor" [class.active]="selectedDraftPointIndex === $index">
+                  <div class="keypoint-head">
+                    <strong>Point {{ $index + 1 }}</strong>
+                    <div class="keypoint-actions">
+                      <button class="ghost-button small" type="button" (click)="selectDraftPoint($index)">Select on map</button>
+                      <button class="icon-button small" type="button" (click)="removeKeyPoint($index)">Remove</button>
+                    </div>
+                  </div>
+
+                  <div class="form-grid">
+                    <label>
+                      Name
+                      <input type="text" [name]="'kp-name-' + $index" [(ngModel)]="point.name" required />
+                    </label>
+
+                    <label>
+                      Image URL
+                      <input type="url" [name]="'kp-image-' + $index" [(ngModel)]="point.imageUrl" />
+                    </label>
+                  </div>
+
+                  <div
+                    class="keypoint-drop-zone"
+                    [class.active]="keyPointImageDropActive['draft-' + $index]"
+                    (dragover)="onKeyPointImageDragOver($event, 'draft-' + $index)"
+                    (dragleave)="onKeyPointImageDragLeave($event, 'draft-' + $index)"
+                    (drop)="onDraftKeyPointImageDrop($event, point, 'draft-' + $index)"
+                  >
+                    @if (point.imageUrl) {
+                      <img [src]="point.imageUrl" alt="Key point preview" />
+                    }
+                    <div>
+                      <strong>Drop point image</strong>
+                      <span>Image file or image URL</span>
+                    </div>
+                  </div>
+
+                  <label>
+                    Description
+                    <textarea [name]="'kp-description-' + $index" rows="2" [(ngModel)]="point.description"></textarea>
+                  </label>
+
+                  <label>
+                    Secret
+                    <input type="text" [name]="'kp-secret-' + $index" [(ngModel)]="point.secretText" />
+                  </label>
+
+                  <div class="form-grid">
+                    <label>
+                      Latitude
+                      <input type="number" step="0.000001" [name]="'kp-lat-' + $index" [(ngModel)]="point.latitude" (ngModelChange)="onDraftCoordinateChange()" />
+                    </label>
+
+                    <label>
+                      Longitude
+                      <input type="number" step="0.000001" [name]="'kp-lon-' + $index" [(ngModel)]="point.longitude" (ngModelChange)="onDraftCoordinateChange()" />
+                    </label>
+                  </div>
+                </div>
+              }
+
+              <button class="primary-button" type="submit">Save draft</button>
+            </form>
           </div>
-        }
-
-        <button class="primary-button" type="submit">Save draft</button>
-      </form>
+        </div>
+      }
 
       <section class="tour-list">
         <div class="section-title">
@@ -170,6 +204,24 @@
               <span>{{ tour.difficulty }}</span>
               <span>{{ tour.keyPoints.length }} key points</span>
               <span>{{ tour.price || 0 }} RSD</span>
+              <span>{{ tour.routeLengthKm | number:'1.0-2' }} km</span>
+            </div>
+
+            @if (tour.travelTimes.length) {
+              <div class="tag-row">
+                @for (time of tour.travelTimes; track time.transportType) {
+                  <span>{{ time.transportType }}: {{ time.minutes }} min</span>
+                }
+              </div>
+            }
+
+            <div class="meta-row">
+              @if (tour.publishedAt) {
+                <span>Published {{ tour.publishedAt | date:'medium' }}</span>
+              }
+              @if (tour.archivedAt) {
+                <span>Archived {{ tour.archivedAt | date:'medium' }}</span>
+              }
             </div>
 
             <div class="tag-row">
@@ -296,6 +348,10 @@
             <div class="card-actions">
               @if (tour.status === 'Draft') {
                 <button class="primary-button" type="button" (click)="publishTour(tour)">Publish</button>
+              } @else if (tour.status === 'Published') {
+                <button class="primary-button" type="button" (click)="archiveTour(tour)">Archive</button>
+              } @else if (tour.status === 'Archived') {
+                <button class="primary-button" type="button" (click)="reactivateTour(tour)">Reactivate</button>
               }
               <button class="ghost-button" type="button" (click)="toggleReviews(tour)">Reviews</button>
             </div>
@@ -321,7 +377,7 @@
             }
           </article>
         } @empty {
-          <p class="muted">You have not created a tour yet.</p>
+          <p class="muted">Nema kreiranih tura.</p>
         }
       </section>
     </section>
@@ -350,7 +406,7 @@
           </div>
 
           <div class="keypoints-preview">
-            @for (point of tour.keyPoints; track point.ordinalNo) {
+            @for (point of visiblePublicKeyPoints(tour); track point.ordinalNo) {
               <div>
                 <strong>{{ point.ordinalNo }}. {{ point.name }}</strong>
                 <p>{{ point.description }}</p>
