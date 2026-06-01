@@ -11,10 +11,12 @@ namespace TouristApp.API.Grpc;
 public class ToursGrpcService : ToursProto.ToursBase
 {
     private readonly ITourService _tourService;
+    private readonly ITourExecutionService _tourExecutionService;
 
-    public ToursGrpcService(ITourService tourService)
+    public ToursGrpcService(ITourService tourService, ITourExecutionService tourExecutionService)
     {
         _tourService = tourService;
+        _tourExecutionService = tourExecutionService;
     }
 
     public override Task<GetByAuthorResponse> GetByAuthor(GetByAuthorRequest request, ServerCallContext context)
@@ -62,6 +64,34 @@ public class ToursGrpcService : ToursProto.ToursBase
         });
     }
 
+    public override Task<TourExecution> StartTour(StartTourRequest request, ServerCallContext context)
+    {
+        var touristId = GetAuthenticatedTouristId(context);
+        var execution = _tourExecutionService.Start(
+            touristId,
+            request.TourId,
+            new StartTourExecutionDto(request.Latitude, request.Longitude));
+
+        return Task.FromResult(ToGrpcExecution(execution));
+    }
+
+    public override Task<KeyPointProximityResult> CheckKeyPointProximity(CheckKeyPointProximityRequest request, ServerCallContext context)
+    {
+        var touristId = GetAuthenticatedTouristId(context);
+        var result = _tourExecutionService.CheckKeyPointProximity(
+            touristId,
+            request.ExecutionId,
+            new CheckKeyPointProximityDto(request.Latitude, request.Longitude));
+
+        return Task.FromResult(new KeyPointProximityResult
+        {
+            Reached = result.Reached,
+            KeyPointOrdinalNo = result.KeyPointOrdinalNo ?? 0,
+            LastActivity = result.LastActivity.ToString("O", CultureInfo.InvariantCulture),
+            Execution = ToGrpcExecution(result.Execution)
+        });
+    }
+
     private static Tour ToGrpcTour(TourResponseDto dto)
     {
         return new Tour
@@ -93,5 +123,47 @@ public class ToursGrpcService : ToursProto.ToursBase
                 Longitude = keyPoint.Longitude
             }) }
         };
+    }
+
+    private static TourExecution ToGrpcExecution(TourExecutionDto dto)
+    {
+        return new TourExecution
+        {
+            Id = dto.Id,
+            TourId = dto.TourId,
+            TouristId = dto.TouristId,
+            Status = dto.Status,
+            StartedAt = dto.StartedAt.ToString("O", CultureInfo.InvariantCulture),
+            CompletedAt = dto.CompletedAt?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
+            AbandonedAt = dto.AbandonedAt?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
+            LastActivity = dto.LastActivity.ToString("O", CultureInfo.InvariantCulture),
+            StartedLatitude = dto.StartedLatitude,
+            StartedLongitude = dto.StartedLongitude,
+            CompletedKeyPoints =
+            {
+                dto.CompletedKeyPoints.Select(point => new CompletedKeyPoint
+                {
+                    KeyPointOrdinalNo = point.KeyPointOrdinalNo,
+                    CompletedAt = point.CompletedAt.ToString("O", CultureInfo.InvariantCulture)
+                })
+            }
+        };
+    }
+
+    private static long GetAuthenticatedTouristId(ServerCallContext context)
+    {
+        var httpContext = context.GetHttpContext();
+        var user = httpContext?.User;
+        if (user == null || user.Identity == null || !user.Identity.IsAuthenticated)
+        {
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Authentication required"));
+        }
+
+        if (!user.IsInRole("TOURIST"))
+        {
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Only tourists can execute tours."));
+        }
+
+        return user.PersonId();
     }
 }

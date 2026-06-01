@@ -15,6 +15,8 @@ public class ToursContext : DbContext
 
     public DbSet<TouristPosition> TouristPositions { get; set; } = null!;
 
+    public DbSet<TourExecution> TourExecutions { get; set; } = null!;
+
     public ToursContext(DbContextOptions<ToursContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -25,6 +27,8 @@ public class ToursContext : DbContext
         modelBuilder.ApplyConfiguration(new KeyPointConfiguration());
         modelBuilder.ApplyConfiguration(new TourReviewConfiguration());
         modelBuilder.ApplyConfiguration(new TouristPositionConfiguration());
+        modelBuilder.ApplyConfiguration(new TourExecutionConfiguration());
+        modelBuilder.ApplyConfiguration(new CompletedKeyPointConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }

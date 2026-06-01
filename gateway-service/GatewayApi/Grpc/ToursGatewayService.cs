@@ -17,11 +17,7 @@ public class ToursGatewayService : ToursProto.ToursBase
 
     public override async Task<GetByAuthorResponse> GetByAuthor(GetByAuthorRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var auth = httpContext?.Request.Headers["Authorization"].FirstOrDefault();
-        var metadata = new Metadata();
-        if (!string.IsNullOrEmpty(auth))
-            metadata.Add("Authorization", auth);
+        var metadata = ForwardAuthorization(context);
 
         var response = await _tourClient.GetByAuthorAsync(new GetByAuthorRequest
         {
@@ -35,11 +31,7 @@ public class ToursGatewayService : ToursProto.ToursBase
 
     public override async Task<GetActiveResponse> GetActive(GetActiveRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var auth = httpContext?.Request.Headers["Authorization"].FirstOrDefault();
-        var metadata = new Metadata();
-        if (!string.IsNullOrEmpty(auth))
-            metadata.Add("Authorization", auth);
+        var metadata = ForwardAuthorization(context);
 
         var response = await _tourClient.GetActiveAsync(new GetActiveRequest
         {
@@ -48,5 +40,40 @@ public class ToursGatewayService : ToursProto.ToursBase
         }, headers: metadata, cancellationToken: context.CancellationToken);
 
         return response;
+    }
+
+    public override async Task<TourExecution> StartTour(StartTourRequest request, ServerCallContext context)
+    {
+        var response = await _tourClient.StartTourAsync(new StartTourRequest
+        {
+            TourId = request.TourId,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude
+        }, headers: ForwardAuthorization(context), cancellationToken: context.CancellationToken);
+
+        return response;
+    }
+
+    public override async Task<KeyPointProximityResult> CheckKeyPointProximity(CheckKeyPointProximityRequest request, ServerCallContext context)
+    {
+        var response = await _tourClient.CheckKeyPointProximityAsync(new CheckKeyPointProximityRequest
+        {
+            ExecutionId = request.ExecutionId,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude
+        }, headers: ForwardAuthorization(context), cancellationToken: context.CancellationToken);
+
+        return response;
+    }
+
+    private static Metadata ForwardAuthorization(ServerCallContext context)
+    {
+        var httpContext = context.GetHttpContext();
+        var auth = httpContext?.Request.Headers["Authorization"].FirstOrDefault();
+        var metadata = new Metadata();
+        if (!string.IsNullOrEmpty(auth))
+            metadata.Add("Authorization", auth);
+
+        return metadata;
     }
 }

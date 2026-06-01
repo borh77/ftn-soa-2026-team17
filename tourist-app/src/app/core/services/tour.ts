@@ -36,7 +36,13 @@ export interface CreateTourRequest {
   description: string;
   difficulty: string;
   tags: string[];
+  travelTimes: TourTravelTime[];
   keyPoints: KeyPoint[];
+}
+
+export interface TourTravelTime {
+  transportType: 'Walking' | 'Bicycle' | 'Car';
+  minutes: number;
 }
 
 export interface TourReview {
@@ -58,11 +64,48 @@ export interface CreateTourReviewRequest {
   images: string[];
 }
 
+export interface CompletedKeyPoint {
+  keyPointOrdinalNo: number;
+  completedAt: string;
+}
+
+export interface TourExecution {
+  id: number;
+  tourId: number;
+  touristId: number;
+  status: string;
+  startedAt: string;
+  completedAt?: string | null;
+  abandonedAt?: string | null;
+  lastActivity: string;
+  startedLatitude: number;
+  startedLongitude: number;
+  completedKeyPoints: CompletedKeyPoint[];
+}
+
+export interface StartTourExecutionRequest {
+  latitude: number;
+  longitude: number;
+}
+
+export interface CheckKeyPointProximityRequest {
+  latitude: number;
+  longitude: number;
+}
+
+export interface KeyPointProximityResult {
+  reached: boolean;
+  keyPointOrdinalNo?: number | null;
+  lastActivity: string;
+  execution: TourExecution;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class TourService {
   private readonly apiUrl = `${environment.apiHost}/tours/api/Tours`;
+  private readonly executionApiUrl = `${environment.apiHost}/tours/api/tour-executions`;
 
   constructor(
     private http: HttpClient,
@@ -121,6 +164,37 @@ export class TourService {
 
   createReview(tourId: number, request: CreateTourReviewRequest): Observable<TourReview> {
     return this.http.post<TourReview>(`${this.apiUrl}/${tourId}/reviews`, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  startTourExecution(tourId: number, request: StartTourExecutionRequest): Observable<TourExecution> {
+    return this.http.post<TourExecution>(`${this.executionApiUrl}/tours/${tourId}`, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  checkKeyPointProximity(
+    executionId: number,
+    request: CheckKeyPointProximityRequest
+  ): Observable<KeyPointProximityResult> {
+    return this.http.post<KeyPointProximityResult>(
+      `${this.executionApiUrl}/${executionId}/check-keypoints`,
+      request,
+      {
+        headers: this.getAuthHeaders()
+      }
+    );
+  }
+
+  completeTourExecution(executionId: number): Observable<TourExecution> {
+    return this.http.post<TourExecution>(`${this.executionApiUrl}/${executionId}/complete`, null, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  abandonTourExecution(executionId: number): Observable<TourExecution> {
+    return this.http.post<TourExecution>(`${this.executionApiUrl}/${executionId}/abandon`, null, {
       headers: this.getAuthHeaders()
     });
   }

@@ -97,6 +97,48 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE "Tours"."TourReviews"
                     ADD COLUMN IF NOT EXISTS "Images" jsonb NOT NULL DEFAULT '[]'::jsonb;
 
+                ALTER TABLE "Tours"."Tours"
+                    ADD COLUMN IF NOT EXISTS "PublishedAt" timestamp with time zone NULL;
+
+                ALTER TABLE "Tours"."Tours"
+                    ADD COLUMN IF NOT EXISTS "ArchivedAt" timestamp with time zone NULL;
+
+                ALTER TABLE "Tours"."Tours"
+                    ADD COLUMN IF NOT EXISTS "RouteLengthKm" numeric(18,2) NOT NULL DEFAULT 0;
+
+                ALTER TABLE "Tours"."Tours"
+                    ADD COLUMN IF NOT EXISTS "TravelTimes" jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+                CREATE TABLE IF NOT EXISTS "Tours"."TourExecutions" (
+                    "Id" bigint GENERATED ALWAYS AS IDENTITY,
+                    "TourId" bigint NOT NULL,
+                    "TouristId" bigint NOT NULL,
+                    "Status" text NOT NULL,
+                    "StartedAt" timestamp with time zone NOT NULL,
+                    "CompletedAt" timestamp with time zone NULL,
+                    "AbandonedAt" timestamp with time zone NULL,
+                    "LastActivity" timestamp with time zone NOT NULL,
+                    "StartedLatitude" double precision NOT NULL,
+                    "StartedLongitude" double precision NOT NULL,
+                    CONSTRAINT "PK_TourExecutions" PRIMARY KEY ("Id")
+                );
+
+                CREATE INDEX IF NOT EXISTS "IX_TourExecutions_TouristId_TourId_Status"
+                    ON "Tours"."TourExecutions" ("TouristId", "TourId", "Status");
+
+                CREATE TABLE IF NOT EXISTS "Tours"."CompletedKeyPoints" (
+                    "Id" bigint GENERATED ALWAYS AS IDENTITY,
+                    "TourExecutionId" bigint NOT NULL,
+                    "KeyPointOrdinalNo" integer NOT NULL,
+                    "CompletedAt" timestamp with time zone NOT NULL,
+                    CONSTRAINT "PK_CompletedKeyPoints" PRIMARY KEY ("Id"),
+                    CONSTRAINT "FK_CompletedKeyPoints_TourExecutions_TourExecutionId" FOREIGN KEY ("TourExecutionId")
+                        REFERENCES "Tours"."TourExecutions" ("Id") ON DELETE CASCADE
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_CompletedKeyPoints_TourExecutionId_KeyPointOrdinalNo"
+                    ON "Tours"."CompletedKeyPoints" ("TourExecutionId", "KeyPointOrdinalNo");
+
                 DO $$
                 BEGIN
                     IF EXISTS (

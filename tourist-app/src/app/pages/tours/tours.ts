@@ -12,7 +12,8 @@ import {
 import { FormsModule } from '@angular/forms';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth';
-import { KeyPoint, Tour, TourReview, TourService } from '../../core/services/tour';
+import { PositionSimulatorService } from '../../core/services/position-simulator';
+import { KeyPoint, Tour, TourExecution, TourReview, TourService } from '../../core/services/tour';
 
 interface ReviewForm {
   rating: number;
@@ -45,6 +46,10 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   reviewsLoaded: Record<number, boolean> = {};
   imageDropActive: Record<number, boolean> = {};
   pendingReviewIds: Record<number, number> = {};
+  activeExecutionsByTourId: Record<number, TourExecution> = {};
+  executionMessages: Record<number, string> = {};
+  executionErrors: Record<number, string> = {};
+  executionChecking: Record<number, boolean> = {};
 
   selectedDraftPointIndex = 0;
   activeKeyPointEditors: Record<number, ExistingKeyPointEditor> = {};
@@ -64,10 +69,8 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     description: '',
     difficulty: 'Easy',
     tagsText: '',
-    keyPoints: [
-      this.emptyKeyPoint(1),
-      this.emptyKeyPoint(2)
-    ]
+    walkingMinutes: 60,
+    keyPoints: [] as KeyPoint[]
   };
 
   private readonly isBrowser: boolean;
@@ -78,6 +81,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     public authService: AuthService,
     private tourService: TourService,
+    private positionSimulatorService: PositionSimulatorService,
     @Inject(PLATFORM_ID) platformId: object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
@@ -107,6 +111,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     Object.values(this.maps).forEach(map => map.remove());
+    Object.values(this.executionCheckIntervals).forEach(intervalId => clearInterval(intervalId));
   }
 
   get role(): string | null {
@@ -136,24 +141,29 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.message = '';
     this.errorMessage = '';
 
-    const keyPoints = this.newTour.keyPoints
-      .filter(point => point.name.trim() || point.description.trim())
-      .map((point, index) => ({
-        ...point,
-        ordinalNo: index + 1,
-        name: point.name.trim(),
-        description: point.description.trim(),
-        secretText: point.secretText.trim(),
-        imageUrl: point.imageUrl.trim(),
-        latitude: Number(point.latitude),
-        longitude: Number(point.longitude)
-      }));
+    const keyPoints = this.normalizedDraftKeyPoints();
+
+    if (keyPoints.length < 2) {
+      this.errorMessage = 'Moras dodati najmanje dve kljucne tacke klikom na mapu.';
+      return;
+    }
+
+    if (keyPoints.some(point => !this.isCompleteKeyPoint(point))) {
+      this.errorMessage = 'Svaka kljucna tacka mora imati naziv, opis, tajni tekst, sliku i validne koordinate.';
+      return;
+    }
 
     this.tourService.createTour({
       name: this.newTour.name.trim(),
       description: this.newTour.description.trim(),
       difficulty: this.newTour.difficulty,
       tags: this.splitLinesOrCommas(this.newTour.tagsText),
+      travelTimes: [
+        {
+          transportType: 'Walking',
+          minutes: Math.max(1, Number(this.newTour.walkingMinutes) || 60)
+        }
+      ],
       keyPoints
     }).subscribe({
       next: tour => {
@@ -161,8 +171,10 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
         this.resetTourForm();
         this.loadGuideTours();
       },
-      error: () => {
-        this.errorMessage = 'Tura nije kreirana. Proveri da li ima bar dve kljucne tacke i sva obavezna polja.';
+      error: (error: HttpErrorResponse) => {
+        this.errorMessage = this.backendDetail(error)
+          || this.backendTitle(error)
+          || 'Tura nije kreirana. Proveri da li ima bar dve kljucne tacke i sva obavezna polja.';
       }
     });
   }
@@ -183,20 +195,30 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   }
 
   addKeyPoint(): void {
-    this.newTour.keyPoints.push(this.emptyKeyPoint(this.newTour.keyPoints.length + 1));
+    this.errorMessage = 'Klikni na mapu da dodas sledecu kljucnu tacku.';
+    this.scheduleMapRender();
+  }
+
+  addDraftPointAt(latitude: number, longitude: number): void {
+    const ordinalNo = this.newTour.keyPoints.length + 1;
+    this.newTour.keyPoints.push(this.defaultDraftKeyPoint(ordinalNo, latitude, longitude));
     this.selectedDraftPointIndex = this.newTour.keyPoints.length - 1;
+    this.errorMessage = '';
+    this.scheduleMapRender();
+  }
+
+  clearDraftKeyPoints(): void {
+    this.newTour.keyPoints = [];
+    this.selectedDraftPointIndex = 0;
+    this.errorMessage = '';
     this.scheduleMapRender();
   }
 
   removeKeyPoint(index: number): void {
-    if (this.newTour.keyPoints.length <= 2) {
-      this.errorMessage = 'Za publish ture su potrebne bar dve kljucne tacke.';
-      return;
-    }
-
     this.newTour.keyPoints.splice(index, 1);
     this.newTour.keyPoints.forEach((point, pointIndex) => point.ordinalNo = pointIndex + 1);
-    this.selectedDraftPointIndex = Math.min(this.selectedDraftPointIndex, this.newTour.keyPoints.length - 1);
+    this.selectedDraftPointIndex = Math.max(0, Math.min(this.selectedDraftPointIndex, this.newTour.keyPoints.length - 1));
+    this.errorMessage = '';
     this.scheduleMapRender();
   }
 
@@ -469,6 +491,125 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     return !!this.pendingReviewIds[tourId];
   }
 
+  startTour(tour: Tour): void {
+    this.executionMessages[tour.id] = '';
+    this.executionErrors[tour.id] = '';
+
+    this.positionSimulatorService.getMyPosition().subscribe({
+      next: position => {
+        if (!position) {
+          this.executionErrors[tour.id] = 'Prvo postavi lokaciju u Position simulatoru.';
+          return;
+        }
+
+        this.tourService.startTourExecution(tour.id, {
+          latitude: position.latitude,
+          longitude: position.longitude
+        }).subscribe({
+          next: execution => {
+            this.activeExecutionsByTourId[tour.id] = execution;
+            this.executionMessages[tour.id] = 'Tura je pokrenuta.';
+            this.startExecutionPolling(tour.id);
+            this.checkKeyPoints(tour.id);
+          },
+          error: (error: HttpErrorResponse) => {
+            this.executionErrors[tour.id] = this.backendDetail(error) || 'Tura nije pokrenuta.';
+          }
+        });
+      },
+      error: () => {
+        this.executionErrors[tour.id] = 'Ne mogu da procitam lokaciju iz Position simulatora.';
+      }
+    });
+  }
+
+  checkKeyPoints(tourId: number): void {
+    const execution = this.activeExecutionsByTourId[tourId];
+
+    if (!execution || execution.status !== 'Active' || this.executionChecking[tourId]) {
+      return;
+    }
+
+    this.executionChecking[tourId] = true;
+
+    this.positionSimulatorService.getMyPosition().subscribe({
+      next: position => {
+        if (!position) {
+          this.executionChecking[tourId] = false;
+          this.executionErrors[tourId] = 'Prvo postavi lokaciju u Position simulatoru.';
+          return;
+        }
+
+        this.tourService.checkKeyPointProximity(execution.id, {
+          latitude: position.latitude,
+          longitude: position.longitude
+        }).subscribe({
+          next: result => {
+            this.executionChecking[tourId] = false;
+            this.activeExecutionsByTourId[tourId] = result.execution;
+            this.executionMessages[tourId] = result.reached
+              ? `Dostignuta je kljucna tacka ${result.keyPointOrdinalNo}.`
+              : 'Lokacija je proverena. Nema nove kljucne tacke u blizini.';
+
+            if (result.execution.status !== 'Active') {
+              this.stopExecutionPolling(tourId);
+            }
+          },
+          error: (error: HttpErrorResponse) => {
+            this.executionChecking[tourId] = false;
+            this.executionErrors[tourId] = this.backendDetail(error) || 'Provera kljucnih tacaka nije uspela.';
+          }
+        });
+      },
+      error: () => {
+        this.executionChecking[tourId] = false;
+        this.executionErrors[tourId] = 'Ne mogu da procitam lokaciju iz Position simulatora.';
+      }
+    });
+  }
+
+  completeTour(tourId: number): void {
+    const execution = this.activeExecutionsByTourId[tourId];
+
+    if (!execution) {
+      return;
+    }
+
+    this.tourService.completeTourExecution(execution.id).subscribe({
+      next: updated => {
+        this.activeExecutionsByTourId[tourId] = updated;
+        this.executionMessages[tourId] = 'Tura je zavrsena.';
+        this.stopExecutionPolling(tourId);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.executionErrors[tourId] = this.backendDetail(error) || 'Tura nije zavrsena.';
+      }
+    });
+  }
+
+  abandonTour(tourId: number): void {
+    const execution = this.activeExecutionsByTourId[tourId];
+
+    if (!execution) {
+      return;
+    }
+
+    this.tourService.abandonTourExecution(execution.id).subscribe({
+      next: updated => {
+        this.activeExecutionsByTourId[tourId] = updated;
+        this.executionMessages[tourId] = 'Tura je napustena.';
+        this.stopExecutionPolling(tourId);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.executionErrors[tourId] = this.backendDetail(error) || 'Tura nije napustena.';
+      }
+    });
+  }
+
+  activeExecution(tourId: number): TourExecution | undefined {
+    return this.activeExecutionsByTourId[tourId];
+  }
+
   private loadGuideTours(): void {
     this.isLoading = true;
 
@@ -553,6 +694,9 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       'draft-keypoint-map',
       this.newTour.keyPoints,
       (latitude, longitude) => {
+        this.addDraftPointAt(latitude, longitude);
+      },
+      (latitude, longitude) => {
         const point = this.newTour.keyPoints[this.selectedDraftPointIndex];
         if (!point) {
           return;
@@ -592,6 +736,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
           this.keyPointMessages[tour.id] = 'Pozicija je izabrana. Popuni podatke i sacuvaj tacku.';
           this.renderAllMaps();
         },
+        undefined,
         activeOrdinalNo
       );
     });
@@ -626,6 +771,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     elementId: string,
     points: KeyPoint[],
     onMapClick: (latitude: number, longitude: number) => void,
+    onActivePointMove?: (latitude: number, longitude: number) => void,
     activeOrdinalNo?: number | null
   ): void {
     const element = document.getElementById(elementId);
@@ -665,7 +811,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
         marker.bindTooltip('Drag or click map to move', { permanent: true, direction: 'top' });
         marker.on('dragend', (event: any) => {
           const position = event.target.getLatLng();
-          onMapClick(position.lat, position.lng);
+          (onActivePointMove ?? onMapClick)(position.lat, position.lng);
         });
       }
 
@@ -724,10 +870,8 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       description: '',
       difficulty: 'Easy',
       tagsText: '',
-      keyPoints: [
-        this.emptyKeyPoint(1),
-        this.emptyKeyPoint(2)
-      ]
+      walkingMinutes: 60,
+      keyPoints: []
     };
     this.selectedDraftPointIndex = 0;
     this.scheduleMapRender();
@@ -752,6 +896,18 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       imageUrl: '',
       latitude: this.defaultCenter[0],
       longitude: this.defaultCenter[1]
+    };
+  }
+
+  private defaultDraftKeyPoint(ordinalNo: number, latitude: number, longitude: number): KeyPoint {
+    return {
+      ordinalNo,
+      name: `Kljucna tacka ${ordinalNo}`,
+      description: `Opis kljucne tacke ${ordinalNo}`,
+      secretText: `Tajna ${ordinalNo}`,
+      imageUrl: 'https://placehold.co/800x500?text=Key+point',
+      latitude: Number(latitude.toFixed(6)),
+      longitude: Number(longitude.toFixed(6))
     };
   }
 
@@ -835,8 +991,37 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     return Number.isFinite(Number(point.latitude)) && Number.isFinite(Number(point.longitude));
   }
 
+  private normalizedDraftKeyPoints(): KeyPoint[] {
+    return this.newTour.keyPoints.map((point, index) => ({
+      ...point,
+      ordinalNo: index + 1,
+      name: point.name.trim(),
+      description: point.description.trim(),
+      secretText: point.secretText.trim(),
+      imageUrl: point.imageUrl.trim(),
+      latitude: Number(point.latitude),
+      longitude: Number(point.longitude)
+    }));
+  }
+
+  private isCompleteKeyPoint(point: KeyPoint): boolean {
+    return !!point.name.trim()
+      && !!point.description.trim()
+      && !!point.secretText.trim()
+      && !!point.imageUrl.trim()
+      && this.hasValidCoordinates(point)
+      && Number(point.latitude) >= -90
+      && Number(point.latitude) <= 90
+      && Number(point.longitude) >= -180
+      && Number(point.longitude) <= 180;
+  }
+
   private backendDetail(error: HttpErrorResponse): string {
     return typeof error.error?.detail === 'string' ? error.error.detail : '';
+  }
+
+  private backendTitle(error: HttpErrorResponse): string {
+    return typeof error.error?.title === 'string' ? error.error.title : '';
   }
 
   private escapeHtml(value: string): string {
@@ -846,5 +1031,23 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  private readonly executionCheckIntervals: Record<number, ReturnType<typeof setInterval>> = {};
+
+  private startExecutionPolling(tourId: number): void {
+    this.stopExecutionPolling(tourId);
+    this.executionCheckIntervals[tourId] = setInterval(() => this.checkKeyPoints(tourId), 10000);
+  }
+
+  private stopExecutionPolling(tourId: number): void {
+    const intervalId = this.executionCheckIntervals[tourId];
+
+    if (!intervalId) {
+      return;
+    }
+
+    clearInterval(intervalId);
+    delete this.executionCheckIntervals[tourId];
   }
 }

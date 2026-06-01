@@ -70,11 +70,85 @@ public class TranscodedToursDocumentFilter : IDocumentFilter
 
         activePath.AddOperation(OperationType.Get, getActiveOp);
 
+        var startTourPath = new OpenApiPathItem();
+        startTourPath.AddOperation(OperationType.Post, new OpenApiOperation
+        {
+            Summary = "Start tour execution (transcoded to gRPC)",
+            Description = "Gateway REST -> gRPC StartTour",
+            Parameters = new List<OpenApiParameter>
+            {
+                new OpenApiParameter { Name = "tourId", In = ParameterLocation.Path, Required = true, Schema = new OpenApiSchema { Type = "integer", Format = "int64" } }
+            },
+            RequestBody = new OpenApiRequestBody
+            {
+                Required = true,
+                Content = new Dictionary<string, OpenApiMediaType>
+                {
+                    ["application/json"] = new OpenApiMediaType
+                    {
+                        Schema = new OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties =
+                            {
+                                ["latitude"] = new OpenApiSchema { Type = "number", Format = "double" },
+                                ["longitude"] = new OpenApiSchema { Type = "number", Format = "double" }
+                            }
+                        }
+                    }
+                }
+            },
+            Responses = new OpenApiResponses
+            {
+                ["200"] = new OpenApiResponse { Description = "OK" }
+            }
+        });
+
+        var checkKeyPointsPath = new OpenApiPathItem();
+        checkKeyPointsPath.AddOperation(OperationType.Post, new OpenApiOperation
+        {
+            Summary = "Check key point proximity (transcoded to gRPC)",
+            Description = "Gateway REST -> gRPC CheckKeyPointProximity",
+            Parameters = new List<OpenApiParameter>
+            {
+                new OpenApiParameter { Name = "executionId", In = ParameterLocation.Path, Required = true, Schema = new OpenApiSchema { Type = "integer", Format = "int64" } }
+            },
+            RequestBody = new OpenApiRequestBody
+            {
+                Required = true,
+                Content = new Dictionary<string, OpenApiMediaType>
+                {
+                    ["application/json"] = new OpenApiMediaType
+                    {
+                        Schema = new OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties =
+                            {
+                                ["latitude"] = new OpenApiSchema { Type = "number", Format = "double" },
+                                ["longitude"] = new OpenApiSchema { Type = "number", Format = "double" }
+                            }
+                        }
+                    }
+                }
+            },
+            Responses = new OpenApiResponses
+            {
+                ["200"] = new OpenApiResponse { Description = "OK" }
+            }
+        });
+
         // Inject into document if not present
         if (!swaggerDoc.Paths.ContainsKey("/tours"))
             swaggerDoc.Paths.Add("/tours", toursPath);
 
         if (!swaggerDoc.Paths.ContainsKey("/tours/active"))
             swaggerDoc.Paths.Add("/tours/active", activePath);
+
+        if (!swaggerDoc.Paths.ContainsKey("/tour-executions/tours/{tourId}"))
+            swaggerDoc.Paths.Add("/tour-executions/tours/{tourId}", startTourPath);
+
+        if (!swaggerDoc.Paths.ContainsKey("/tour-executions/{executionId}/check-keypoints"))
+            swaggerDoc.Paths.Add("/tour-executions/{executionId}/check-keypoints", checkKeyPointsPath);
     }
 }

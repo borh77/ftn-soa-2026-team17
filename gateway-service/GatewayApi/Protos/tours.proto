@@ -55,6 +55,44 @@ message GetActiveResponse {
   int32 total = 2;
 }
 
+message StartTourRequest {
+  int64 tourId = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message CheckKeyPointProximityRequest {
+  int64 executionId = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message CompletedKeyPoint {
+  int32 keyPointOrdinalNo = 1;
+  string completedAt = 2;
+}
+
+message TourExecution {
+  int64 id = 1;
+  int64 tourId = 2;
+  int64 touristId = 3;
+  string status = 4;
+  string startedAt = 5;
+  string completedAt = 6;
+  string abandonedAt = 7;
+  string lastActivity = 8;
+  double startedLatitude = 9;
+  double startedLongitude = 10;
+  repeated CompletedKeyPoint completedKeyPoints = 11;
+}
+
+message KeyPointProximityResult {
+  bool reached = 1;
+  int32 keyPointOrdinalNo = 2;
+  string lastActivity = 3;
+  TourExecution execution = 4;
+}
+
 service Tours {
   rpc GetByAuthor (GetByAuthorRequest) returns (GetByAuthorResponse) {
     option (google.api.http) = {
@@ -65,6 +103,20 @@ service Tours {
   rpc GetActive (GetActiveRequest) returns (GetActiveResponse) {
     option (google.api.http) = {
       get: "/tours/active"
+    };
+  }
+
+  rpc StartTour (StartTourRequest) returns (TourExecution) {
+    option (google.api.http) = {
+      post: "/tour-executions/tours/{tourId}"
+      body: "*"
+    };
+  }
+
+  rpc CheckKeyPointProximity (CheckKeyPointProximityRequest) returns (KeyPointProximityResult) {
+    option (google.api.http) = {
+      post: "/tour-executions/{executionId}/check-keypoints"
+      body: "*"
     };
   }
 }

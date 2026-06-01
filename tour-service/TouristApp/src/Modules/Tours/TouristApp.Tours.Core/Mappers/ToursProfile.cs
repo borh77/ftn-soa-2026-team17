@@ -45,6 +45,23 @@ public class ToursProfile : Profile
         CreateMap<TourReview, TourReviewDto>()
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images.ToList()));
 
+        CreateMap<CompletedKeyPoint, CompletedKeyPointDto>();
+
+        CreateMap<TourExecution, TourExecutionDto>()
+            .ConstructUsing((src, ctx) => new TourExecutionDto(
+                src.Id,
+                src.TourId,
+                src.TouristId,
+                src.Status.ToString(),
+                src.StartedAt,
+                src.CompletedAt,
+                src.AbandonedAt,
+                src.LastActivity,
+                src.StartedLatitude,
+                src.StartedLongitude,
+                ctx.Mapper.Map<IReadOnlyList<CompletedKeyPointDto>>(src.CompletedKeyPoints)
+            ));
+
         // Intentionally do not map KeyPointDto -> KeyPoint globally because
         // server assigns ordinals and construction is handled in service layer.
     }
