@@ -72,18 +72,36 @@
           </label>
         </div>
 
+        <label>
+          Walking time (minutes)
+          <input
+            type="number"
+            min="1"
+            name="walkingMinutes"
+            [(ngModel)]="newTour.walkingMinutes"
+            required
+          />
+        </label>
+
         <div class="section-title compact">
           <h3>Key points</h3>
-          <button class="ghost-button" type="button" (click)="addKeyPoint()">Add point</button>
+          <div class="keypoint-actions">
+            <button class="ghost-button" type="button" (click)="addKeyPoint()">Add by map</button>
+            <button class="icon-button" type="button" (click)="clearDraftKeyPoints()">Clear</button>
+          </div>
         </div>
 
         <div class="map-editor">
           <div class="map-copy">
             <strong>Draw the route on the map</strong>
-            <span>Select a point below, then click the map to set its position.</span>
+            <span>Click the map to add a point. Drag the selected marker to move it.</span>
           </div>
           <div id="draft-keypoint-map" class="route-map"></div>
         </div>
+
+        @if (newTour.keyPoints.length < 2) {
+          <p class="inline-notice error">Dodaj najmanje dve kljucne tacke klikom na mapu.</p>
+        }
 
         @for (point of newTour.keyPoints; track $index) {
           <div class="keypoint-editor" [class.active]="selectedDraftPointIndex === $index">
@@ -357,6 +375,46 @@
               </div>
             }
           </div>
+
+          @if (role === 'TOURIST') {
+            <div class="execution-panel">
+              @if (activeExecution(tour.id); as execution) {
+                <div class="section-title compact">
+                  <h3>Active tour</h3>
+                  <span>{{ execution.status }}</span>
+                </div>
+
+                <div class="meta-row">
+                  <span>Reached {{ execution.completedKeyPoints.length }} stops</span>
+                  <span>Last activity {{ execution.lastActivity | date: 'shortTime' }}</span>
+                </div>
+
+                <div class="card-actions">
+                  @if (execution.status === 'Active') {
+                    <button class="ghost-button" type="button" (click)="checkKeyPoints(tour.id)" [disabled]="executionChecking[tour.id]">
+                      @if (executionChecking[tour.id]) {
+                        Checking...
+                      } @else {
+                        Check location
+                      }
+                    </button>
+                    <button class="primary-button" type="button" (click)="completeTour(tour.id)">Complete</button>
+                    <button class="icon-button" type="button" (click)="abandonTour(tour.id)">Abandon</button>
+                  }
+                </div>
+              } @else {
+                <button class="primary-button" type="button" (click)="startTour(tour)">Start tour</button>
+              }
+
+              @if (executionMessages[tour.id]) {
+                <p class="inline-notice success">{{ executionMessages[tour.id] }}</p>
+              }
+
+              @if (executionErrors[tour.id]) {
+                <p class="inline-notice error">{{ executionErrors[tour.id] }}</p>
+              }
+            </div>
+          }
 
           <div class="reviews-panel">
             <div class="section-title compact">

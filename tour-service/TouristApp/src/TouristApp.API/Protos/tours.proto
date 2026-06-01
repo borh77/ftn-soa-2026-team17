@@ -56,10 +56,54 @@ message GetActiveResponse {
   int32 total = 2;
 }
 
+message StartTourRequest {
+  int64 tourId = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message CheckKeyPointProximityRequest {
+  int64 executionId = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message CompletedKeyPoint {
+  int32 keyPointOrdinalNo = 1;
+  string completedAt = 2;
+}
+
+message TourExecution {
+  int64 id = 1;
+  int64 tourId = 2;
+  int64 touristId = 3;
+  string status = 4;
+  string startedAt = 5;
+  string completedAt = 6;
+  string abandonedAt = 7;
+  string lastActivity = 8;
+  double startedLatitude = 9;
+  double startedLongitude = 10;
+  repeated CompletedKeyPoint completedKeyPoints = 11;
+}
+
+message KeyPointProximityResult {
+  bool reached = 1;
+  int32 keyPointOrdinalNo = 2;
+  string lastActivity = 3;
+  TourExecution execution = 4;
+}
+
 service Tours {
   // Returns tours for the specified author (pagination)
   rpc GetByAuthor (GetByAuthorRequest) returns (GetByAuthorResponse);
 
   // Returns published tours with pagination
   rpc GetActive (GetActiveRequest) returns (GetActiveResponse);
+
+  // Starts a tour execution session for the authenticated tourist
+  rpc StartTour (StartTourRequest) returns (TourExecution);
+
+  // Checks whether the authenticated tourist reached a key point
+  rpc CheckKeyPointProximity (CheckKeyPointProximityRequest) returns (KeyPointProximityResult);
 }
