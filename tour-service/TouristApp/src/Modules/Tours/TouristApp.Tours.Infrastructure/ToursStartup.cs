@@ -29,6 +29,7 @@ public static class ToursStartup
         services.AddScoped<ITourService, TourService>();
         services.AddScoped<ITourReviewService, TourReviewService>();
         services.AddScoped<ITouristPositionService, TouristPositionService>();
+        services.AddScoped<ITourExecutionService, TourExecutionService>();
     }
 
     private static void SetupInfrastructure(IServiceCollection services)
@@ -45,5 +46,6 @@ public static class ToursStartup
         services.AddScoped<ITourRepository, TourRepository>();
         services.AddScoped<ITourReviewRepository, TourReviewRepository>();
         services.AddScoped<ITouristPositionRepository, TouristPositionRepository>();
+        services.AddScoped<ITourExecutionRepository, TourExecutionRepository>();
     }
 }

@@ -402,6 +402,13 @@ textarea {
   padding-top: 14px;
 }
 
+.execution-panel {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #e3ece8;
+  padding-top: 14px;
+}
+
 .review {
   border-radius: 8px;
   background: #f7fbf9;
