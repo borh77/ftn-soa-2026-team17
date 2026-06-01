@@ -29,6 +29,7 @@ services:
       JWT_EXPIRATION: 86400000
     ports:
       - "8080:8080"
+      - "9092:9092"
     networks:
       - soa-network
   
@@ -226,6 +227,7 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - Grpc__TourServiceUrl=http://tour-service:81
       - Grpc__PurchaseServiceUrl=http://purchase-service:9091
+      - Grpc__StakeholdersServiceUrl=http://stakeholders-service:9092
     ports:
       - "8082:8080"
     networks:

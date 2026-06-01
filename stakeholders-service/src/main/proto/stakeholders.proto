@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.soa.stakeholders.grpc";
+option java_outer_classname = "StakeholdersProto";
+
+package stakeholders;
+
+service StakeholdersGrpcService {
+  rpc GetMyProfile (GetMyProfileRequest) returns (ProfileResponse);
+  rpc GetAllUsers (GetAllUsersRequest) returns (GetAllUsersResponse);
+}
+
+message GetMyProfileRequest {
+  string username = 1;
+}
+
+message GetAllUsersRequest {
+}
+
+message ProfileResponse {
+  string username = 1;
+  string email = 2;
+  string role = 3;
+  string firstName = 4;
+  string lastName = 5;
+  string profileImage = 6;
+  string biography = 7;
+  string motto = 8;
+}
+
+message UserResponse {
+  int64 id = 1;
+  string username = 2;
+  string email = 3;
+  string role = 4;
+  bool blocked = 5;
+}
+
+message GetAllUsersResponse {
+  repeated UserResponse users = 1;
+}
