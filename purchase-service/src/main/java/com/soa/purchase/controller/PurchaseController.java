@@ -32,6 +32,15 @@ public class PurchaseController {
         return purchaseService.addTourToCart(SecurityUtils.currentPersonId(), tourId);
     }
 
+    @PostMapping("/api/cart/items/{tourId}/simulate-saga-failure")
+public ShoppingCartResponse simulateAddToCartSagaFailure(
+        @PathVariable Long tourId) {
+    return purchaseService.simulateAddToCartSagaFailure(
+            SecurityUtils.currentPersonId(),
+            tourId
+    );
+}
+
     @DeleteMapping("/api/cart/items/{itemId}")
     public ShoppingCartResponse removeItem(@PathVariable Long itemId) {
         return purchaseService.removeItem(SecurityUtils.currentPersonId(), itemId);

@@ -30,21 +30,78 @@ public class PurchaseService {
 
     @Transactional
     public ShoppingCartResponse addTourToCart(Long touristId, Long tourId) {
-        if (tokenRepository.existsByTouristIdAndTourId(touristId, tourId)) {
-            throw new BadRequestException("Tura je već kupljena.");
+    if (tokenRepository.existsByTouristIdAndTourId(touristId, tourId)) {
+        throw new BadRequestException("Tura je već kupljena.");
+    }
+
+    TourPurchaseInfo tour = tourClient.getPurchaseInfo(tourId);
+    if (tour == null) {
+        throw new BadRequestException("Tura nije pronađena.");
+    }
+    if (!tour.canBePurchased()) {
+        throw new BadRequestException("Samo objavljena tura može da se kupi.");
+    }
+
+    ShoppingCart cart = getOrCreateCart(touristId);
+    OrderItem addedItem = new OrderItem(tour.id(), tour.name(), tour.price());
+
+    try {
+        cart.addItem(addedItem);
+        ShoppingCart savedCart = cartRepository.save(cart);
+        return toCartResponse(savedCart);
+
+    } catch (Exception ex) {
+        compensateAddedCartItem(cart, addedItem);
+
+        if (ex instanceof BadRequestException badRequestException) {
+            throw badRequestException;
         }
 
-        TourPurchaseInfo tour = tourClient.getPurchaseInfo(tourId);
-        if (tour == null) {
-            throw new BadRequestException("Tura nije pronađena.");
-        }
-        if (!tour.canBePurchased()) {
-            throw new BadRequestException("Samo objavljena tura može da se kupi.");
+        if (ex instanceof IllegalArgumentException illegalArgumentException) {
+            throw new BadRequestException(illegalArgumentException.getMessage());
         }
 
-        ShoppingCart cart = getOrCreateCart(touristId);
-        cart.addItem(new OrderItem(tour.id(), tour.name(), tour.price()));
-        return toCartResponse(cartRepository.save(cart));
+        throw new BadRequestException("Dodavanje ture u korpu nije uspelo. Izvršen je rollback dodate stavke.");
+    }
+    }
+
+    @Transactional
+public ShoppingCartResponse simulateAddToCartSagaFailure(Long touristId, Long tourId) {
+    if (tokenRepository.existsByTouristIdAndTourId(touristId, tourId)) {
+        throw new BadRequestException("Tura je već kupljena.");
+    }
+
+    TourPurchaseInfo tour = tourClient.getPurchaseInfo(tourId);
+    if (tour == null) {
+        throw new BadRequestException("Tura nije pronađena.");
+    }
+    if (!tour.canBePurchased()) {
+        throw new BadRequestException("Samo objavljena tura može da se kupi.");
+    }
+
+    ShoppingCart cart = getOrCreateCart(touristId);
+    OrderItem addedItem = new OrderItem(tour.id(), tour.name(), tour.price());
+
+    try {
+        cart.addItem(addedItem);
+        cartRepository.saveAndFlush(cart);
+
+        throw new RuntimeException("Simulirana greška nakon dodavanja stavke u korpu.");
+
+    } catch (Exception ex) {
+        compensateAddedCartItem(cart, addedItem);
+        throw new BadRequestException("Simulirana greška. Izvršen je rollback dodate stavke.");
+    }
+}
+
+    private void compensateAddedCartItem(ShoppingCart cart, OrderItem addedItem) {
+    if (cart == null || addedItem == null) {
+        return;
+    }
+
+    cart.getItems().remove(addedItem);
+    cart.recalculateTotalPrice();
+    cartRepository.save(cart);
     }
 
     @Transactional
@@ -56,21 +113,58 @@ public class PurchaseService {
 
     @Transactional
     public CheckoutResponse checkout(Long touristId) {
-        ShoppingCart cart = getOrCreateCart(touristId);
-        if (cart.getItems().isEmpty()) {
-            throw new BadRequestException("Korpa je prazna.");
+    ShoppingCart cart = getOrCreateCart(touristId);
+    if (cart.getItems().isEmpty()) {
+        throw new BadRequestException("Korpa je prazna.");
+    }
+
+    List<TourPurchaseToken> createdTokens = new java.util.ArrayList<>();
+
+    try {
+        for (OrderItem item : cart.getItems()) {
+            if (tokenRepository.existsByTouristIdAndTourId(touristId, item.getTourId())) {
+                continue;
+            }
+
+            TourPurchaseInfo tour = tourClient.getPurchaseInfo(item.getTourId());
+
+            if (tour == null || !tour.canBePurchased()) {
+                throw new BadRequestException("Tura " + item.getTourName() + " više nije dostupna za kupovinu.");
+            }
+
+            TourPurchaseToken token =
+                    new TourPurchaseToken(touristId, tour.id(), tour.name());
+
+            TourPurchaseToken savedToken = tokenRepository.save(token);
+            createdTokens.add(savedToken);
         }
 
-        List<TourPurchaseToken> tokens = cart.getItems().stream()
-                .filter(item -> !tokenRepository.existsByTouristIdAndTourId(touristId, item.getTourId()))
-                .map(item -> new TourPurchaseToken(touristId, item.getTourId(), item.getTourName()))
-                .toList();
-
-        List<TourPurchaseToken> savedTokens = tokenRepository.saveAll(tokens);
         cart.clear();
         cartRepository.save(cart);
 
-        return new CheckoutResponse(savedTokens.stream().map(this::toTokenResponse).toList());
+        return new CheckoutResponse(
+                createdTokens.stream()
+                        .map(this::toTokenResponse)
+                        .toList()
+        );
+
+    } catch (Exception ex) {
+        compensateCreatedTokens(createdTokens);
+
+        if (ex instanceof BadRequestException badRequestException) {
+            throw badRequestException;
+        }
+
+        throw new BadRequestException("Checkout nije uspeo. Izvršen je rollback kreiranih tokena.");
+    }
+    }
+
+    private void compensateCreatedTokens(List<TourPurchaseToken> createdTokens) {
+    if (createdTokens == null || createdTokens.isEmpty()) {
+        return;
+    }
+
+    tokenRepository.deleteAll(createdTokens);
     }
 
     @Transactional(readOnly = true)

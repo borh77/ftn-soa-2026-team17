@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using System.Collections.Generic;
+using GatewayApi.Protos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +73,10 @@ builder.Services.AddSingleton(sp =>
 {
     var channel = Grpc.Net.Client.GrpcChannel.ForAddress(purchaseGrpcUrl);
     return new PurchaseProto.PurchaseGrpcServiceClient(channel);
+});
+builder.Services.AddGrpcClient<StakeholdersGrpcService.StakeholdersGrpcServiceClient>(options =>
+{
+    options.Address = new Uri(builder.Configuration["Grpc:StakeholdersServiceUrl"]!);
 });
 
 var app = builder.Build();
