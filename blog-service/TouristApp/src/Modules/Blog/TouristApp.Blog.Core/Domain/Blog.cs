@@ -10,6 +10,7 @@ public class Blog : Entity
     public string Description { get; init; }
     public DateTime CreationDate { get; init; }
     public List<string> Images { get; init; }
+    public long AuthorId { get; init; }
 
     private readonly List<Comment> _comments = new();
     public IReadOnlyCollection<Comment> Comments => _comments.AsReadOnly();
@@ -17,11 +18,13 @@ public class Blog : Entity
     // Parameterless constructor for EF Core
     private Blog() { }
 
-    public Blog(string title, string description, DateTime creationDate, List<string>? images)
+    public Blog(long authorId, string title, string description, DateTime creationDate, List<string>? images)
     {
+        if (authorId <= 0) throw new ArgumentException("AuthorId must be valid.");
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title is required.");
         if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("Description is required.");
 
+        AuthorId = authorId;
         Title = title;
         Description = description;
         CreationDate = creationDate;

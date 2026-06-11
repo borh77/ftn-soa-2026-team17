@@ -1,0 +1,135 @@
+<section class="blogs-page">
+  <div class="page-header hero-strip">
+    <div>
+      <p class="eyebrow">Blogs</p>
+      <h1>Traveller blogs</h1>
+      <p class="header-copy">
+        Follow authors to unlock commenting on their blogs. Recommendations are based on the follower graph.
+      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="loadBlogs()">Refresh</button>
+  </div>
+
+  @if (message) {
+    <p class="notice success">{{ message }}</p>
+  }
+
+  @if (errorMessage) {
+    <p class="notice error">{{ errorMessage }}</p>
+  }
+
+  @if (recommendations.length > 0) {
+    <section class="recommendations-card">
+      <h2>Recommended profiles</h2>
+      <p>People followed by users you already follow:</p>
+
+      <div class="recommendation-list">
+        @for (id of recommendations; track id) {
+          <button class="ghost-button" type="button" (click)="followAuthor(id)">
+            Follow user {{ id }}
+          </button>
+        }
+      </div>
+    </section>
+  }
+
+  @if (isLoading) {
+    <p class="muted">Loading blogs...</p>
+  }
+
+  @if (!isLoading) {
+    <section class="blog-list">
+      @for (blog of blogs; track blog.id) {
+        <article class="blog-card">
+          <div class="blog-head">
+            <div>
+              <h2>{{ blog.title }}</h2>
+              <p class="muted">Author ID: {{ blog.authorId }} · {{ blog.creationDate | date:'mediumDate' }}</p>
+            </div>
+
+            @if (!isMyOwnBlog(blog.authorId) && !canComment(blog.authorId)) {
+              <button
+                class="primary-button"
+                type="button"
+                (click)="followAuthor(blog.authorId)"
+                [disabled]="followLoadingByAuthorId[blog.authorId]"
+              >
+                @if (followLoadingByAuthorId[blog.authorId]) {
+                  Following...
+                } @else {
+                  Follow author
+                }
+              </button>
+            }
+
+            @if (!isMyOwnBlog(blog.authorId) && canComment(blog.authorId)) {
+              <span class="follow-status">Following</span>
+            }
+          </div>
+
+          <p class="blog-description">{{ blog.description }}</p>
+
+          @if (blog.images.length > 0) {
+            <div class="image-grid">
+              @for (image of blog.images; track image) {
+                <img [src]="image" alt="Blog image" />
+              }
+            </div>
+          }
+
+          <section class="comments-section">
+            <div class="section-title">
+              <h3>Comments</h3>
+              <span>{{ blog.comments.length }} total</span>
+            </div>
+
+            <div class="comments-list">
+              @for (comment of blog.comments; track comment.id) {
+                <div class="comment-card">
+                  <strong>User {{ comment.authorId }}</strong>
+                  <p>{{ comment.text }}</p>
+                  <small>{{ comment.createdAt | date:'medium' }}</small>
+                </div>
+              } @empty {
+                <p class="muted">No comments yet.</p>
+              }
+            </div>
+
+            @if (canComment(blog.authorId)) {
+              <form class="comment-form" (ngSubmit)="addComment(blog)">
+                <label>
+                  Add comment
+                  <textarea
+                    rows="3"
+                    [name]="'comment-' + blog.id"
+                    [(ngModel)]="commentTextByBlogId[blog.id]"
+                    placeholder="Write your comment..."
+                  ></textarea>
+                </label>
+
+                <button
+                  class="primary-button"
+                  type="submit"
+                  [disabled]="commentLoadingByBlogId[blog.id]"
+                >
+                  @if (commentLoadingByBlogId[blog.id]) {
+                    Posting...
+                  } @else {
+                    Post comment
+                  }
+                </button>
+              </form>
+            } @else {
+              <div class="locked-comment">
+                Follow this author to leave a comment.
+              </div>
+            }
+          </section>
+        </article>
+      } @empty {
+        <p class="muted">No blogs yet.</p>
+      }
+    </section>
+  }
+</section>

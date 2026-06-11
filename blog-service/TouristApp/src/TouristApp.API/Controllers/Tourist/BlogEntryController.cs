@@ -6,7 +6,7 @@ using TouristApp.BuildingBlocks.Core.UseCases;
 
 namespace TouristApp.API.Controllers.Tourist;
 
-[Authorize(Policy = "touristPolicy")]
+[Authorize]
 
 [Route("api/tourist/blog")]
 [ApiController]
@@ -18,8 +18,11 @@ public class BlogEntryController : ControllerBase
         _blogService = blogService;
 
     [HttpPost]
-    public ActionResult<BlogEntryDto> Create([FromBody] BlogEntryDto blog) =>
-        Ok(_blogService.Create(blog));
+    public ActionResult<BlogEntryDto> Create([FromBody] BlogEntryDto blog)
+    {
+        var authorId = User.PersonId();
+        return Ok(_blogService.Create(blog, authorId));
+    }
 
     [HttpGet]
     public ActionResult<PagedResult<BlogEntryDto>> GetAll([FromQuery] int page, [FromQuery] int pageSize) =>

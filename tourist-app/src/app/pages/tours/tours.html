@@ -290,7 +290,9 @@
               }
 
               <div class="keypoint-list">
-                @for (point of tour.keyPoints; track point.ordinalNo) {                    @if (point.imageUrl) {
+                @for (point of tour.keyPoints; track point.ordinalNo) {
+                  <div class="keypoint-row">
+                    @if (point.imageUrl) {
                       <img [src]="point.imageUrl" alt="Key point image" />
                     }
                     <div>

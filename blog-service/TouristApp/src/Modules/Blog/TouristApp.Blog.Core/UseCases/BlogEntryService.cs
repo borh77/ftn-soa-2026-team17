@@ -23,9 +23,16 @@ public class BlogEntryService : IBlogEntryService
         _mapper = mapper;
     }
 
-    public BlogEntryDto Create(BlogEntryDto blogDto)
+    public BlogEntryDto Create(BlogEntryDto blogDto, long authorId)
     {
-        var blog = _mapper.Map<Domain.Blog>(blogDto);
+        var blog = new Domain.Blog(
+            authorId,
+            blogDto.Title,
+            blogDto.Description,
+            blogDto.CreationDate == default ? DateTime.UtcNow : blogDto.CreationDate,
+            blogDto.Images
+        );
+
         return _mapper.Map<BlogEntryDto>(_blogRepository.Create(blog));
     }
 
