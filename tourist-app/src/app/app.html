@@ -15,8 +15,14 @@
     @if (authService.isLoggedIn()) {
       <a routerLink="/profile">Profile</a>
       <a routerLink="/tours">Tours</a>
-      <a routerLink="/position-simulator">Position simulator</a>
 
+      @if (authService.getUserRole() === 'TOURIST') {
+        <a routerLink="/cart">Cart</a>
+        <a routerLink="/my-tokens">My tokens</a>
+      }
+
+      <a routerLink="/position-simulator">Position simulator</a>
+      
       @if (authService.getUserRole() === 'ADMIN') {
         <a routerLink="/admin/users">Admin users</a>
       }

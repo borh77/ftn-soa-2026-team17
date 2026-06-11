@@ -1,0 +1,53 @@
+<section class="tokens-page">
+  <div class="page-header hero-strip">
+    <div>
+      <p class="eyebrow">Purchased tours</p>
+      <h1>My tokens</h1>
+      <p class="header-copy">
+        Each token represents one purchased tour.
+      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="loadTokens()">Refresh</button>
+  </div>
+
+  @if (errorMessage) {
+    <p class="notice error">{{ errorMessage }}</p>
+  }
+
+  @if (isLoading) {
+    <p class="muted">Loading tokens...</p>
+  }
+
+  @if (!isLoading) {
+    @if (tokens.length === 0) {
+      <div class="empty-card">
+        <h2>No purchased tours</h2>
+        <p>After checkout, purchase tokens will appear here.</p>
+        <a class="primary-link" routerLink="/tours">Browse tours</a>
+      </div>
+    } @else {
+      <section class="token-grid">
+        @for (token of tokens; track token.id) {
+          <article class="token-card">
+            <div class="token-head">
+              <div>
+                <h2>{{ token.tourName }}</h2>
+                <p>Tour ID: {{ token.tourId }}</p>
+              </div>
+              <span>Purchased</span>
+            </div>
+
+            <div class="token-value">
+              {{ token.token }}
+            </div>
+
+            <small>
+              Created: {{ token.createdAt | date:'medium' }}
+            </small>
+          </article>
+        }
+      </section>
+    }
+  }
+</section>

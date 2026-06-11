@@ -60,4 +60,6 @@ public interface ITourService
         void Update(long tourId, long authorId, UpdateTourDto dto);
 
     TourPurchaseInfoDto GetPurchaseInfo(long tourId);
+
+    TourResponseDto GetById(long tourId);
 }

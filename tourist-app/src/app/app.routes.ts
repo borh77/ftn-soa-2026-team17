@@ -7,6 +7,8 @@ import { Profile } from './pages/profile/profile';
 import { AdminUsers } from './pages/admin-users/admin-users';
 import { PositionSimulator } from './pages/position-simulator/position-simulator';
 import { Tours } from './pages/tours/tours';
+import { Cart } from './pages/cart/cart';
+import { MyTokens } from './pages/my-tokens/my-tokens';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -14,6 +16,8 @@ export const routes: Routes = [
   { path: 'register', component: Register },
   { path: 'profile', component: Profile },
   { path: 'tours', component: Tours },
+  { path: 'cart', component: Cart },
+  { path: 'my-tokens', component: MyTokens },
   { path: 'admin/users', component: AdminUsers },
   { path: 'position-simulator', component: PositionSimulator },
   { path: '**', redirectTo: '' }

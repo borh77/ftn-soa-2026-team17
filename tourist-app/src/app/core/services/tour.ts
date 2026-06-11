@@ -210,4 +210,10 @@ export class TourService {
       Authorization: `Bearer ${this.authService.getToken()}`
     });
   }
+
+  getPurchasedTourDetails(tourId: number): Observable<Tour> {
+    return this.http.get<Tour>(`${this.apiUrl}/${tourId}/purchased-details`, {
+      headers: this.getAuthHeaders()
+    });
+  }
 }

@@ -580,3 +580,90 @@ textarea {
     font-size: 28px;
   }
 }
+
+.purchase-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #d9e4df;
+  border-radius: 8px;
+  background: #f7fbf9;
+}
+
+.purchase-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #d9e4df;
+  border-radius: 8px;
+  background: #f7fbf9;
+}
+
+.purchase-button,
+.purchase-status {
+  width: 100%;
+  min-height: 52px;
+  justify-content: center;
+  text-align: center;
+  font-weight: 800;
+  border-radius: 8px;
+}
+
+.purchase-button {
+  text-decoration: none;
+}
+
+.purchase-status {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.purchase-status.success {
+  background: #dff5ea;
+  color: #2f5f50;
+}
+
+.purchase-status.error {
+  background: #fff1ef;
+  color: #b33b24;
+}
+
+.execution-panel .primary-button,
+.start-tour-button {
+  width: 100%;
+  min-height: 52px;
+  justify-content: center;
+  text-align: center;
+  font-weight: 800;
+  border-radius: 8px;
+}
+
+.purchase-button,
+.execution-panel button,
+.execution-panel .primary-button {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.purchase-button,
+.execution-panel button,
+.execution-panel .primary-button,
+.primary-button {
+  font-size: 16px;
+}
+
+.locked-info {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a5a1f;
+  font-weight: 800;
+  text-align: center;
+}

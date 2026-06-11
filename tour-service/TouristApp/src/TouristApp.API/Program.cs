@@ -7,6 +7,7 @@ using TouristApp.API.Grpc;
 using TouristApp.API.Authentification;
 using TouristApp.API.Middleware;
 using TouristApp.API.Startup;
+using TouristApp.API.Clients;
 using TouristApp.Tours.Infrastructure.Database;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,13 @@ const string corsPolicy = "_corsPolicy";
 builder.Services.ConfigureCors(corsPolicy);
 
 builder.Services.RegisterModules();
+
+builder.Services.AddHttpClient<PurchaseClient>(client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["Services:PurchaseService"]
+        ?? "http://purchase-service:8080");
+});
 
 builder.Services.AddScoped<JwtService>();
 

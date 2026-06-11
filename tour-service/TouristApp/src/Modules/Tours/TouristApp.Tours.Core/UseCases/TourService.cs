@@ -294,4 +294,12 @@ public class TourService : ITourService
             CanBePurchased = tour.Status == TourStatus.Published
         };
     }
+
+    public TourResponseDto GetById(long tourId)
+    {
+        var tour = _tourRepository.GetById(tourId)
+            ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
+
+        return _mapper.Map<TourResponseDto>(tour);
+    }
 }

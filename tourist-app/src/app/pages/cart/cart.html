@@ -1,0 +1,81 @@
+<section class="cart-page">
+  <div class="page-header hero-strip">
+    <div>
+      <p class="eyebrow">Shopping cart</p>
+      <h1>My cart</h1>
+      <p class="header-copy">
+        Here you can review tours before checkout. Checkout creates purchase tokens for every tour.      </p>
+    </div>
+
+    <button class="ghost-button" type="button" (click)="loadCart()">Refresh</button>
+  </div>
+
+  @if (message) {
+    <p class="notice success">{{ message }}</p>
+  }
+
+  @if (errorMessage) {
+    <p class="notice error">{{ errorMessage }}</p>
+  }
+
+  @if (isLoading) {
+    <p class="muted">Loading cart...</p>
+  }
+
+  @if (cart && !isLoading) {
+    @if (cart.items.length === 0) {
+      <div class="empty-card">
+        <h2>Your cart is empty</h2>
+        <p>Go to tours and add a published tour to your cart.</p>
+        <a class="primary-link" routerLink="/tours">Browse tours</a>
+      </div>
+    } @else {
+      <section class="cart-card">
+        <div class="section-title">
+          <h2>Cart items</h2>
+          <span>{{ cart.items.length }} items</span>
+        </div>
+
+        <div class="cart-items">
+          @for (item of cart.items; track item.id) {
+            <article class="cart-item">
+              <div>
+                <h3>{{ item.tourName }}</h3>
+                <p>Tour ID: {{ item.tourId }}</p>
+              </div>
+
+              <div class="item-price">
+                <strong>{{ item.price | currency:'RSD':'symbol':'1.0-0' }}</strong>
+                <button class="icon-button" type="button" (click)="removeItem(item.id)">
+                  Remove
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+
+        <div class="cart-total">
+          <span>Total:</span>
+          <strong>{{ cart.totalPrice | currency:'RSD':'symbol':'1.0-0' }}</strong>
+        </div>
+
+        <div class="card-actions">
+          <a class="ghost-link" routerLink="/tours">Continue shopping</a>
+
+          <button
+            class="primary-button"
+            type="button"
+            (click)="checkout()"
+            [disabled]="isCheckingOut"
+          >
+            @if (isCheckingOut) {
+              Checking out...
+            } @else {
+              Checkout
+            }
+          </button>
+        </div>
+      </section>
+    }
+  }
+</section>

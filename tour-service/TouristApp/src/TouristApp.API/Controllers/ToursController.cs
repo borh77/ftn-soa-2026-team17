@@ -2,6 +2,7 @@ using TouristApp.Tours.API.Dtos;
 using TouristApp.Tours.API.Public;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using TouristApp.API.Clients;
 using TouristApp.BuildingBlocks.Core.UseCases;
 
 namespace TouristApp.API.Controllers;
@@ -17,15 +18,18 @@ public class ToursController : ControllerBase
     private readonly IHealthService _healthService;
     private readonly ITourService _tourService;
     private readonly ITourReviewService _tourReviewService;
+    private readonly PurchaseClient _purchaseClient;
 
     public ToursController(
         IHealthService healthService,
         ITourService tourService,
-        ITourReviewService tourReviewService)
+        ITourReviewService tourReviewService,
+        PurchaseClient purchaseClient)
     {
         _healthService = healthService;
         _tourService = tourService;
         _tourReviewService = tourReviewService;
+        _purchaseClient = purchaseClient;
     }
 
     /// <summary>GET /api/tours/ping – provera da li je modul aktivan.</summary>
@@ -207,5 +211,53 @@ public class ToursController : ControllerBase
         var authorId = User.PersonId();
         _tourService.RemoveKeyPoint(tourId, ordinalNo, authorId);
         return Ok();
+    }
+
+    [Authorize(Policy = "guidePolicy")]
+    [HttpGet]
+    public ActionResult<PagedResult<TourResponseDto>> GetMine(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var authorId = User.PersonId();
+        var result = _tourService.GetByAuthor(authorId, page, pageSize);
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("active")]
+    public ActionResult<PagedResult<TourResponseDto>> GetActive(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        var result = _tourService.GetActive(page, pageSize);
+        return Ok(result);
+    }
+
+    [Authorize(Policy = "touristPolicy")]
+    [HttpGet("{tourId}/purchased-details")]
+    [ProducesResponseType(typeof(TourResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TourResponseDto>> GetPurchasedDetails([FromRoute] long tourId)
+    {
+        var authHeader = Request.Headers.Authorization.ToString();
+
+        if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
+        {
+            return Forbid();
+        }
+
+        var token = authHeader["Bearer ".Length..];
+
+        var purchased = await _purchaseClient.HasPurchasedAsync(tourId, token);
+
+        if (!purchased)
+        {
+            return Forbid();
+        }
+
+        var result = _tourService.GetById(tourId);
+        return Ok(result);
     }
 }

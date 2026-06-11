@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   Inject,
   OnDestroy,
@@ -14,6 +15,9 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth';
 import { PositionSimulatorService } from '../../core/services/position-simulator';
 import { KeyPoint, Tour, TourExecution, TourReview, TourService } from '../../core/services/tour';
+import { PurchaseService } from '../../core/services/purchase';
+import { finalize } from 'rxjs';
+import { RouterLink } from '@angular/router';
 
 interface ReviewForm {
   rating: number;
@@ -31,7 +35,7 @@ interface ExistingKeyPointEditor {
 
 @Component({
   selector: 'app-tours',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './tours.html',
   styleUrl: './tours.css'
 })
@@ -50,6 +54,12 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   executionMessages: Record<number, string> = {};
   executionErrors: Record<number, string> = {};
   executionChecking: Record<number, boolean> = {};
+
+  cartMessages: Record<number, string> = {};
+  cartErrors: Record<number, string> = {};
+  cartLoading: Record<number, boolean> = {};
+  cartTourIds = new Set<number>();
+  purchasedTourIds = new Set<number>();
 
   selectedDraftPointIndex = 0;
   activeKeyPointEditors: Record<number, ExistingKeyPointEditor> = {};
@@ -82,11 +92,13 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     public authService: AuthService,
     private tourService: TourService,
     private positionSimulatorService: PositionSimulatorService,
+    private purchaseService: PurchaseService,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) platformId: object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
   }
-
+  
   ngOnInit(): void {
     this.currentRole = this.authService.getUserRole();
     this.isLoading = true;
@@ -192,6 +204,31 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
         this.errorMessage = 'Tura nije publishovana. Backend trazi validnu turu sa dovoljno kljucnih tacaka.';
       }
     });
+  }
+
+  addToCart(tour: Tour): void {
+    this.cartMessages[tour.id] = '';
+    this.cartErrors[tour.id] = '';
+    this.cartLoading[tour.id] = true;
+    this.cdr.detectChanges();
+
+    this.purchaseService.addToCart(tour.id)
+      .pipe(finalize(() => {
+        this.cartLoading[tour.id] = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: cart => {
+          this.cartTourIds = new Set(cart.items.map(item => item.tourId));
+          this.cartMessages[tour.id] = `Tour "${tour.name}" has been added to cart.`;
+          this.cdr.detectChanges();
+        },
+        error: error => {
+          const backendMessage = error?.error?.message;
+          this.cartErrors[tour.id] = backendMessage || 'Tour was not added to cart.';
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   addKeyPoint(): void {
@@ -628,6 +665,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
 
   private loadActiveTours(): void {
     this.isLoading = true;
+    this.cdr.detectChanges();
 
     this.tourService.getActiveTours(1, 50).subscribe({
       next: response => {
@@ -641,11 +679,16 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
           this.reviewsLoaded[tour.id] = false;
         });
 
+        this.loadCartState();
+        this.loadPurchasedState();
         this.loadVisibleReviews();
+
+        this.cdr.detectChanges();
       },
       error: () => {
-        this.errorMessage = 'Ne mogu da ucitam objavljene ture. Proveri login i backend.';
+        this.errorMessage = 'Cannot load published tours. Check login and backend.';
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -985,6 +1028,66 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
 
       reader.readAsDataURL(file);
     });
+  }
+
+  loadCartState(): void {
+    this.purchaseService.getCart().subscribe({
+      next: cart => {
+        this.cartTourIds = new Set(cart.items.map(item => item.tourId));
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  loadPurchasedState(): void {
+    if (this.role !== 'TOURIST') {
+      return;
+    }
+
+    this.purchasedTourIds = new Set<number>();
+
+    for (const tour of this.activeTours) {
+      this.purchaseService.hasPurchased(tour.id).subscribe({
+        next: purchased => {
+          if (purchased) {
+            this.purchasedTourIds.add(tour.id);
+            this.loadPurchasedTourDetails(tour.id);
+            this.cdr.detectChanges();
+          }
+        },
+        error: () => {}
+      });
+    }
+  }
+
+  loadPurchasedTourDetails(tourId: number): void {
+    this.tourService.getPurchasedTourDetails(tourId).subscribe({
+      next: fullTour => {
+        this.activeTours = this.activeTours.map(tour =>
+          tour.id === tourId ? fullTour : tour
+        );
+
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  visibleKeyPoints(tour: Tour): KeyPoint[] {
+    if (this.isPurchased(tour.id)) {
+      return tour.keyPoints ?? [];
+    }
+
+    return (tour.keyPoints ?? []).slice(0, 1);
+  }
+
+  isInCart(tourId: number): boolean {
+    return this.cartTourIds.has(tourId);
+  }
+
+  isPurchased(tourId: number): boolean {
+    return this.purchasedTourIds.has(tourId);
   }
 
   private hasValidCoordinates(point: KeyPoint): boolean {

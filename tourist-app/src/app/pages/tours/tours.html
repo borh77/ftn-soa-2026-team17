@@ -290,9 +290,7 @@
               }
 
               <div class="keypoint-list">
-                @for (point of tour.keyPoints; track point.ordinalNo) {
-                  <div class="keypoint-row">
-                    @if (point.imageUrl) {
+                @for (point of tour.keyPoints; track point.ordinalNo) {                    @if (point.imageUrl) {
                       <img [src]="point.imageUrl" alt="Key point image" />
                     }
                     <div>
@@ -368,13 +366,54 @@
           </div>
 
           <div class="keypoints-preview">
-            @for (point of tour.keyPoints; track point.ordinalNo) {
+            @for (point of visibleKeyPoints(tour); track point.ordinalNo) {
               <div>
                 <strong>{{ point.ordinalNo }}. {{ point.name }}</strong>
                 <p>{{ point.description }}</p>
               </div>
             }
           </div>
+
+          @if (!isPurchased(tour.id)) {
+            <p class="locked-info">
+              Buy this tour to unlock all key points.
+            </p>
+          }
+
+          @if (role === 'TOURIST') {
+            <div class="purchase-panel">
+              @if (isPurchased(tour.id)) {
+                <div class="purchase-status success">
+                  Purchased — this tour is unlocked.
+                </div>
+              } @else if (isInCart(tour.id)) {
+                <a class="primary-button purchase-button" routerLink="/cart">
+                  Go to cart
+                </a>
+              } @else {
+                <button
+                  class="primary-button purchase-button"
+                  type="button"
+                  (click)="addToCart(tour)"
+                  [disabled]="cartLoading[tour.id]"
+                >
+                  @if (cartLoading[tour.id]) {
+                    Adding...
+                  } @else {
+                    Add to cart
+                  }
+                </button>
+              }
+
+              @if (cartMessages[tour.id]) {
+                <div class="purchase-status success">{{ cartMessages[tour.id] }}</div>
+              }
+
+              @if (cartErrors[tour.id]) {
+                <div class="purchase-status error">{{ cartErrors[tour.id] }}</div>
+              }
+            </div>
+          }
 
           @if (role === 'TOURIST') {
             <div class="execution-panel">
