@@ -2,18 +2,38 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System.Text;
 using TouristApp.API.Grpc;
 using TouristApp.API.Authentification;
 using TouristApp.API.Middleware;
 using TouristApp.API.Startup;
 using TouristApp.API.Clients;
+using TouristApp.Tours.Core.Observability;
 using TouristApp.Tours.Infrastructure.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddGrpc();
+var tracingServiceName = builder.Configuration["OpenTelemetry:ServiceName"] ?? "tour-service";
+var tracingEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317";
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(
+        serviceName: tracingServiceName,
+        serviceVersion: typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown"))
+    .WithTracing(tracing => tracing
+        .AddSource(ToursTelemetry.ActivitySourceName)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation()
+        .AddOtlpExporter(options =>
+        {
+            options.Endpoint = new Uri(tracingEndpoint);
+        }));
+
 builder.Services.ConfigureSwagger(builder.Configuration);
 const string corsPolicy = "_corsPolicy";
 builder.Services.ConfigureCors(corsPolicy);
