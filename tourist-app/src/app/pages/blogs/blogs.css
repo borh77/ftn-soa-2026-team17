@@ -211,12 +211,60 @@ p {
   margin: 16px 0;
 }
 
-.image-grid img {
+.blog-image-button {
+  width: 100%;
+  border: 1px solid #dce9e5;
+  border-radius: 8px;
+  padding: 0;
+  overflow: hidden;
+  background: #f3f7f5;
+  cursor: zoom-in;
+}
+
+.blog-image-button img {
+  display: block;
   width: 100%;
   aspect-ratio: 16 / 10;
-  object-fit: cover;
+  object-fit: contain;
+}
+
+.blog-image-button:focus-visible {
+  outline: 3px solid rgba(42, 157, 143, 0.35);
+  outline-offset: 3px;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 60px 24px 24px;
+  background: rgba(20, 36, 34, 0.88);
+  cursor: zoom-out;
+}
+
+.image-lightbox img {
+  max-width: min(1100px, 100%);
+  max-height: calc(100vh - 84px);
+  object-fit: contain;
   border-radius: 8px;
-  border: 1px solid #dce9e5;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+
+.lightbox-close {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 6px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #264653;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .comments-section {
@@ -241,6 +289,49 @@ p {
 
 .comment-card p {
   margin-bottom: 6px;
+}
+
+.comment-head,
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-head {
+  justify-content: space-between;
+}
+
+.comment-actions {
+  flex-wrap: wrap;
+}
+
+.comment-edit-form {
+  display: grid;
+  gap: 9px;
+  margin: 10px 0;
+}
+
+.small-button {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.delete-button {
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 10px;
+  border: 1px solid #efb2a5;
+  background: #fff1ef;
+  color: #b33b24;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.delete-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .comment-card small,

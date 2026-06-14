@@ -213,7 +213,14 @@
           @if (blog.images.length > 0) {
             <div class="image-grid">
               @for (image of blog.images; track $index) {
-                <img [src]="image" [alt]="blogImageAlt($index, blog.title)" />
+                <button
+                  class="blog-image-button"
+                  type="button"
+                  (click)="openImage(image)"
+                  aria-label="View full image"
+                >
+                  <img [src]="image" [alt]="blogImageAlt($index, blog.title)" />
+                </button>
               }
             </div>
           }
@@ -227,8 +234,58 @@
             <div class="comments-list">
               @for (comment of blog.comments; track comment.id) {
                 <div class="comment-card">
-                  <strong>@{{ usernameFor(comment.authorId) }}</strong>
-                  <p>{{ comment.text }}</p>
+                  <div class="comment-head">
+                    <strong>@{{ usernameFor(comment.authorId) }}</strong>
+
+                    @if (isMyComment(comment.authorId) && editingCommentId !== comment.id) {
+                      <div class="comment-actions">
+                        <button class="ghost-button small-button" type="button" (click)="startCommentEdit(comment)">
+                          Edit
+                        </button>
+                        <button
+                          class="delete-button small-button"
+                          type="button"
+                          (click)="deleteComment(blog, comment.id)"
+                          [disabled]="commentActionLoadingById[comment.id]"
+                        >
+                          @if (commentActionLoadingById[comment.id]) {
+                            Deleting...
+                          } @else {
+                            Delete
+                          }
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                  @if (editingCommentId === comment.id) {
+                    <form class="comment-edit-form" (ngSubmit)="updateComment(blog, comment.id)">
+                      <textarea
+                        rows="3"
+                        [name]="'edit-comment-' + comment.id"
+                        [(ngModel)]="editCommentText"
+                      ></textarea>
+                      <div class="comment-actions">
+                        <button
+                          class="primary-button small-button"
+                          type="submit"
+                          [disabled]="commentActionLoadingById[comment.id]"
+                        >
+                          @if (commentActionLoadingById[comment.id]) {
+                            Saving...
+                          } @else {
+                            Save
+                          }
+                        </button>
+                        <button class="ghost-button small-button" type="button" (click)="cancelCommentEdit()">
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  } @else {
+                    <p>{{ comment.text }}</p>
+                  }
+
                   <small>
                     Created {{ comment.createdAt | date:'medium' }}
                     @if (comment.lastModifiedAt) {
@@ -276,5 +333,12 @@
         <p class="muted">No blogs yet.</p>
       }
     </section>
+  }
+
+  @if (selectedImage) {
+    <div class="image-lightbox" role="dialog" aria-modal="true" aria-label="Full-size blog image" (click)="closeImage()">
+      <button class="lightbox-close" type="button" (click)="closeImage()" aria-label="Close image">Close</button>
+      <img [src]="selectedImage" alt="Full-size blog image" (click)="$event.stopPropagation()" />
+    </div>
   }
 </section>

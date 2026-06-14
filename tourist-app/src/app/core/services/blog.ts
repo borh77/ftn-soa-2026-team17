@@ -70,6 +70,24 @@ export class BlogService {
     });
   }
 
+  updateComment(
+    blogId: number,
+    commentId: number,
+    request: CreateCommentRequest
+  ): Observable<CommentResponse> {
+    return this.http.put<CommentResponse>(
+      `${this.apiUrl}/${blogId}/comments/${commentId}`,
+      request,
+      { headers: this.getAuthHeaders() }
+    );
+  }
+
+  deleteComment(blogId: number, commentId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${blogId}/comments/${commentId}`, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
   likeBlog(blogId: number): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/${blogId}/likes`, null, {
       headers: this.getAuthHeaders()
