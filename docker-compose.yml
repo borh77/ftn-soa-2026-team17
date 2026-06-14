@@ -156,6 +156,7 @@ services:
     restart: on-failure
     depends_on:
       - tours-db
+      - jaeger
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
@@ -168,6 +169,8 @@ services:
       - DATABASE_POOLING=true
       - Jwt__Secret=my-super-secret-jwt-key-2026-test
       - Jwt__Expiration=86400000
+      - OpenTelemetry__ServiceName=tour-service
+      - OpenTelemetry__OtlpEndpoint=http://jaeger:4317
     ports:
       - "8083:80"
       - "8085:81"
@@ -230,6 +233,19 @@ services:
       - Grpc__StakeholdersServiceUrl=http://stakeholders-service:9092
     ports:
       - "8082:8080"
+    networks:
+      - soa-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: soa-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
     networks:
       - soa-network
 

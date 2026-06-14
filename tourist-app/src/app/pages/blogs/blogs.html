@@ -3,12 +3,19 @@
     <div>
       <p class="eyebrow">Blogs</p>
       <h1>Traveller blogs</h1>
-      <p class="header-copy">
-        Follow authors to unlock commenting on their blogs. Recommendations are based on the follower graph.
-      </p>
+      <p class="header-copy">Create markdown blogs, follow authors, comment, and like traveller stories.</p>
     </div>
 
-    <button class="ghost-button" type="button" (click)="loadBlogs()">Refresh</button>
+    <div class="header-actions">
+      <button class="primary-button" type="button" (click)="showCreateForm = !showCreateForm">
+        @if (showCreateForm) {
+          Close form
+        } @else {
+          Create blog
+        }
+      </button>
+      <button class="ghost-button" type="button" (click)="loadBlogs()">Refresh</button>
+    </div>
   </div>
 
   @if (message) {
@@ -17,6 +24,81 @@
 
   @if (errorMessage) {
     <p class="notice error">{{ errorMessage }}</p>
+  }
+
+  @if (showCreateForm) {
+    <section class="create-panel">
+      <div class="section-title">
+        <div>
+          <h2>Create blog</h2>
+          <span>Markdown supported</span>
+        </div>
+      </div>
+
+      <form class="blog-form" (ngSubmit)="createBlog()">
+        <div class="form-grid">
+          <label>
+            Title
+            <input type="text" name="title" [(ngModel)]="newBlog.title" required />
+          </label>
+
+          <label>
+            Creation date
+            <input
+              type="datetime-local"
+              name="creationDate"
+              [(ngModel)]="newBlog.creationDate"
+              required
+            />
+          </label>
+        </div>
+
+        <label>
+          Description
+          <textarea
+            name="description"
+            rows="8"
+            [(ngModel)]="newBlog.description"
+            placeholder="Write your post in Markdown"
+            required
+          ></textarea>
+        </label>
+
+        <div class="markdown-preview-grid">
+          <div>
+            <div class="section-title compact">
+              <h3>Live preview</h3>
+              <span>Rendered markdown</span>
+            </div>
+            <article class="markdown-preview" [innerHTML]="renderMarkdown(newBlog.description)"></article>
+          </div>
+
+          <div>
+            <label>
+              Image URLs
+              <textarea
+                name="imageUrlsText"
+                rows="8"
+                [(ngModel)]="newBlog.imageUrlsText"
+                placeholder="https://example.com/photo1.jpg, https://example.com/photo2.jpg"
+              ></textarea>
+            </label>
+            <p class="muted small-copy">Optional. Separate image URLs with a comma or a new line.</p>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="primary-button" type="submit" [disabled]="createLoading">
+            @if (createLoading) {
+              Saving...
+            } @else {
+              Save blog
+            }
+          </button>
+          <button class="ghost-button" type="button" (click)="showCreateForm = false">Cancel</button>
+        </div>
+      </form>
+    </section>
   }
 
   @if (recommendations.length > 0) {
@@ -45,35 +127,53 @@
           <div class="blog-head">
             <div>
               <h2>{{ blog.title }}</h2>
-              <p class="muted">Author ID: {{ blog.authorId }} · {{ blog.creationDate | date:'mediumDate' }}</p>
+              <p class="muted">Author ID: {{ blog.authorId }} - {{ blog.creationDate | date:'mediumDate' }}</p>
             </div>
 
-            @if (!isMyOwnBlog(blog.authorId) && !canComment(blog.authorId)) {
+            <div class="blog-actions">
+              <span class="like-count">{{ blog.likeCount }} likes</span>
               <button
-                class="primary-button"
+                class="ghost-button"
                 type="button"
-                (click)="followAuthor(blog.authorId)"
-                [disabled]="followLoadingByAuthorId[blog.authorId]"
+                (click)="toggleLike(blog)"
+                [disabled]="likeLoadingByBlogId[blog.id]"
               >
-                @if (followLoadingByAuthorId[blog.authorId]) {
-                  Following...
+                @if (likeLoadingByBlogId[blog.id]) {
+                  Updating...
+                } @else if (blog.isLikedByCurrentUser) {
+                  Unlike
                 } @else {
-                  Follow author
+                  Like
                 }
               </button>
-            }
 
-            @if (!isMyOwnBlog(blog.authorId) && canComment(blog.authorId)) {
-              <span class="follow-status">Following</span>
-            }
+              @if (!isMyOwnBlog(blog.authorId) && !canComment(blog.authorId)) {
+                <button
+                  class="primary-button"
+                  type="button"
+                  (click)="followAuthor(blog.authorId)"
+                  [disabled]="followLoadingByAuthorId[blog.authorId]"
+                >
+                  @if (followLoadingByAuthorId[blog.authorId]) {
+                    Following...
+                  } @else {
+                    Follow author
+                  }
+                </button>
+              }
+
+              @if (!isMyOwnBlog(blog.authorId) && canComment(blog.authorId)) {
+                <span class="follow-status">Following</span>
+              }
+            </div>
           </div>
 
-          <p class="blog-description">{{ blog.description }}</p>
+          <div class="blog-description markdown-body" [innerHTML]="renderMarkdown(blog.description)"></div>
 
           @if (blog.images.length > 0) {
             <div class="image-grid">
-              @for (image of blog.images; track image) {
-                <img [src]="image" alt="Blog image" />
+              @for (image of blog.images; track $index) {
+                <img [src]="image" [alt]="blogImageAlt($index, blog.title)" />
               }
             </div>
           }
@@ -81,15 +181,72 @@
           <section class="comments-section">
             <div class="section-title">
               <h3>Comments</h3>
-              <span>{{ blog.comments.length }} total</span>
+              <span>{{ commentCount(blog) }} total</span>
             </div>
 
             <div class="comments-list">
               @for (comment of blog.comments; track comment.id) {
                 <div class="comment-card">
-                  <strong>User {{ comment.authorId }}</strong>
-                  <p>{{ comment.text }}</p>
-                  <small>{{ comment.createdAt | date:'medium' }}</small>
+                  <div class="comment-head">
+                    <strong>User {{ comment.authorId }}</strong>
+
+                    @if (isMyComment(comment)) {
+                      <div class="comment-actions">
+                        @if (!editingCommentByCommentId[comment.id]) {
+                          <button class="ghost-button small-button" type="button" (click)="startEditComment(comment)">
+                            Edit
+                          </button>
+                        }
+                        <button
+                          class="danger-button small-button"
+                          type="button"
+                          (click)="deleteComment(blog, comment)"
+                          [disabled]="commentActionLoadingByCommentId[comment.id]"
+                        >
+                          @if (commentActionLoadingByCommentId[comment.id]) {
+                            Deleting...
+                          } @else {
+                            Delete
+                          }
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                  @if (editingCommentByCommentId[comment.id]) {
+                    <form class="comment-edit-form" (ngSubmit)="updateComment(blog, comment)">
+                      <textarea
+                        rows="3"
+                        [name]="'edit-comment-' + comment.id"
+                        [(ngModel)]="editCommentTextByCommentId[comment.id]"
+                      ></textarea>
+                      <div class="form-actions">
+                        <button
+                          class="primary-button small-button"
+                          type="submit"
+                          [disabled]="commentActionLoadingByCommentId[comment.id]"
+                        >
+                          @if (commentActionLoadingByCommentId[comment.id]) {
+                            Saving...
+                          } @else {
+                            Save
+                          }
+                        </button>
+                        <button class="ghost-button small-button" type="button" (click)="cancelEditComment(comment.id)">
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  } @else {
+                    <p>{{ comment.text }}</p>
+                  }
+
+                  <small>
+                    {{ comment.createdAt | date:'medium' }}
+                    @if (comment.lastModifiedAt) {
+                      - edited {{ comment.lastModifiedAt | date:'medium' }}
+                    }
+                  </small>
                 </div>
               } @empty {
                 <p class="muted">No comments yet.</p>

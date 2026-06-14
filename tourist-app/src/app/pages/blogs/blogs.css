@@ -20,6 +20,15 @@
   box-shadow: 0 18px 36px rgba(38, 70, 83, 0.08);
 }
 
+.header-actions,
+.blog-actions,
+.form-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: #24715f;
@@ -48,7 +57,8 @@ p {
 }
 
 .blog-card,
-.recommendations-card {
+.recommendations-card,
+.create-panel {
   border: 1px solid #d9e4df;
   border-radius: 8px;
   background: #ffffff;
@@ -59,6 +69,58 @@ p {
 .blog-description {
   color: #465b55;
   line-height: 1.55;
+}
+
+.markdown-body :first-child,
+.markdown-preview :first-child {
+  margin-top: 0;
+}
+
+.markdown-body :last-child,
+.markdown-preview :last-child {
+  margin-bottom: 0;
+}
+
+.blog-form {
+  display: grid;
+  gap: 16px;
+}
+
+.form-grid,
+.markdown-preview-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.markdown-preview {
+  min-height: 190px;
+  border: 1px solid #d9e4df;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f7fbf9;
+  color: #33423e;
+  line-height: 1.55;
+}
+
+.compact {
+  margin-bottom: 8px;
+}
+
+.small-copy {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.like-count {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #f1f8f5;
+  color: #2f5f50;
+  font-weight: 900;
 }
 
 .image-grid {
@@ -96,6 +158,22 @@ p {
   padding: 12px;
 }
 
+.comment-head,
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-head {
+  justify-content: space-between;
+}
+
+.comment-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .comment-card p {
   margin-bottom: 6px;
 }
@@ -115,6 +193,12 @@ p {
   padding: 14px;
 }
 
+.comment-edit-form {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 6px;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -122,6 +206,7 @@ label {
   font-weight: 700;
 }
 
+input,
 textarea {
   width: 100%;
   border: 1px solid #c9d8d2;
@@ -133,6 +218,7 @@ textarea {
   resize: vertical;
 }
 
+input:focus,
 textarea:focus {
   outline: none;
   border-color: #2a9d8f;
@@ -141,7 +227,8 @@ textarea:focus {
 }
 
 .primary-button,
-.ghost-button {
+.ghost-button,
+.danger-button {
   min-height: 44px;
   border-radius: 8px;
   padding: 0 16px;
@@ -152,6 +239,12 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.small-button {
+  min-height: 34px;
+  padding: 0 11px;
+  font-size: 12px;
 }
 
 .primary-button {
@@ -168,6 +261,17 @@ textarea:focus {
   background: #ffffff;
   color: #1f6f63;
   border-color: #b9d8d1;
+}
+
+.danger-button {
+  background: #fff3ed;
+  color: #b4532a;
+  border-color: #efc2aa;
+}
+
+.danger-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .follow-status {
@@ -214,8 +318,14 @@ textarea:focus {
 @media (max-width: 700px) {
   .page-header,
   .blog-head,
-  .section-title {
+  .section-title,
+  .comment-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .form-grid,
+  .markdown-preview-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -66,6 +66,8 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   keyPointMessages: Record<number, string> = {};
   keyPointErrors: Record<number, string> = {};
   keyPointImageDropActive: Record<string, boolean> = {};
+  publishPriceByTourId: Record<number, number> = {};
+  lifecycleLoadingByTourId: Record<number, boolean> = {};
 
   currentRole: string | null = null;
   isLoading = false;
@@ -194,14 +196,71 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   publishTour(tour: Tour): void {
     this.message = '';
     this.errorMessage = '';
+    const price = Number(this.publishPriceByTourId[tour.id] ?? tour.price ?? 0);
 
-    this.tourService.publishTour(tour.id).subscribe({
+    if (!Number.isFinite(price) || price <= 0) {
+      this.errorMessage = 'Unesi cenu vecu od 0 pre publishovanja ture.';
+      return;
+    }
+
+    this.lifecycleLoadingByTourId[tour.id] = true;
+
+    this.tourService.publishTour(tour.id, { price }).pipe(
+      finalize(() => {
+        this.lifecycleLoadingByTourId[tour.id] = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
       next: () => {
         this.message = `Tura "${tour.name}" je publishovana.`;
         this.loadGuideTours();
       },
-      error: () => {
-        this.errorMessage = 'Tura nije publishovana. Backend trazi validnu turu sa dovoljno kljucnih tacaka.';
+      error: (error: HttpErrorResponse) => {
+        this.errorMessage = this.backendDetail(error)
+          || this.backendTitle(error)
+          || 'Tura nije publishovana. Backend trazi validnu turu sa dovoljno kljucnih tacaka i cenom vecom od 0.';
+      }
+    });
+  }
+
+  archiveTour(tour: Tour): void {
+    this.message = '';
+    this.errorMessage = '';
+    this.lifecycleLoadingByTourId[tour.id] = true;
+
+    this.tourService.archiveTour(tour.id).pipe(
+      finalize(() => {
+        this.lifecycleLoadingByTourId[tour.id] = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: () => {
+        this.message = `Tura "${tour.name}" je arhivirana.`;
+        this.loadGuideTours();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.errorMessage = this.backendDetail(error) || 'Tura nije arhivirana.';
+      }
+    });
+  }
+
+  reactivateTour(tour: Tour): void {
+    this.message = '';
+    this.errorMessage = '';
+    this.lifecycleLoadingByTourId[tour.id] = true;
+
+    this.tourService.reactivateTour(tour.id).pipe(
+      finalize(() => {
+        this.lifecycleLoadingByTourId[tour.id] = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: () => {
+        this.message = `Tura "${tour.name}" je ponovo aktivirana.`;
+        this.loadGuideTours();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.errorMessage = this.backendDetail(error) || 'Tura nije ponovo aktivirana.';
       }
     });
   }
@@ -653,6 +712,11 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.tourService.getMyTours().subscribe({
       next: response => {
         this.guideTours = response.results;
+        this.guideTours.forEach(tour => {
+          if (!this.publishPriceByTourId[tour.id]) {
+            this.publishPriceByTourId[tour.id] = tour.price > 0 ? tour.price : 1000;
+          }
+        });
         this.isLoading = false;
         this.scheduleMapRender();
       },

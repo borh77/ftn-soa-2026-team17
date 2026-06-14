@@ -187,8 +187,22 @@
             <div class="meta-row">
               <span>{{ tour.difficulty }}</span>
               <span>{{ tour.keyPoints.length }} key points</span>
+              @if (tour.routeLengthKm !== undefined) {
+                <span>{{ tour.routeLengthKm }} km</span>
+              }
               <span>{{ tour.price || 0 }} RSD</span>
             </div>
+
+            @if (tour.publishedAt || tour.archivedAt) {
+              <div class="meta-row">
+                @if (tour.publishedAt) {
+                  <span>Published {{ tour.publishedAt | date: 'mediumDate' }}</span>
+                }
+                @if (tour.archivedAt) {
+                  <span>Archived {{ tour.archivedAt | date: 'mediumDate' }}</span>
+                }
+              </div>
+            }
 
             <div class="tag-row">
               @for (tag of tour.tags; track tag) {
@@ -313,7 +327,56 @@
 
             <div class="card-actions">
               @if (tour.status === 'Draft') {
-                <button class="primary-button" type="button" (click)="publishTour(tour)">Publish</button>
+                <label class="publish-price-field">
+                  Publish price
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    [name]="'publish-price-' + tour.id"
+                    [(ngModel)]="publishPriceByTourId[tour.id]"
+                  />
+                </label>
+                <button
+                  class="primary-button"
+                  type="button"
+                  (click)="publishTour(tour)"
+                  [disabled]="lifecycleLoadingByTourId[tour.id]"
+                >
+                  @if (lifecycleLoadingByTourId[tour.id]) {
+                    Publishing...
+                  } @else {
+                    Publish
+                  }
+                </button>
+              }
+              @if (tour.status === 'Published') {
+                <button
+                  class="icon-button"
+                  type="button"
+                  (click)="archiveTour(tour)"
+                  [disabled]="lifecycleLoadingByTourId[tour.id]"
+                >
+                  @if (lifecycleLoadingByTourId[tour.id]) {
+                    Archiving...
+                  } @else {
+                    Archive
+                  }
+                </button>
+              }
+              @if (tour.status === 'Archived') {
+                <button
+                  class="primary-button"
+                  type="button"
+                  (click)="reactivateTour(tour)"
+                  [disabled]="lifecycleLoadingByTourId[tour.id]"
+                >
+                  @if (lifecycleLoadingByTourId[tour.id]) {
+                    Reactivating...
+                  } @else {
+                    Reactivate
+                  }
+                </button>
               }
               <button class="ghost-button" type="button" (click)="toggleReviews(tour)">Reviews</button>
             </div>
@@ -358,6 +421,9 @@
           <div class="meta-row">
             <span>{{ tour.difficulty }}</span>
             <span>{{ tour.keyPoints.length }} stops</span>
+            @if (tour.routeLengthKm !== undefined) {
+              <span>{{ tour.routeLengthKm }} km</span>
+            }
             <span>{{ tour.price || 0 }} RSD</span>
           </div>
 
