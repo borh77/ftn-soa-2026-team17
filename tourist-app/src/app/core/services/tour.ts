@@ -28,6 +28,10 @@ export interface Tour {
   tags: string[];
   status: string;
   price: number;
+  routeLengthKm?: number;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
+  travelTimes?: TourTravelTime[];
   keyPoints: KeyPoint[];
 }
 
@@ -43,6 +47,10 @@ export interface CreateTourRequest {
 export interface TourTravelTime {
   transportType: 'Walking' | 'Bicycle' | 'Car';
   minutes: number;
+}
+
+export interface PublishTourRequest {
+  price: number;
 }
 
 export interface TourReview {
@@ -150,8 +158,20 @@ export class TourService {
     });
   }
 
-  publishTour(tourId: number): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${tourId}/publish`, null, {
+  publishTour(tourId: number, request: PublishTourRequest): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/publish`, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  archiveTour(tourId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/archive`, null, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  reactivateTour(tourId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/reactivate`, null, {
       headers: this.getAuthHeaders()
     });
   }
