@@ -6,6 +6,7 @@ import { finalize } from 'rxjs';
 import { BlogEntry, BlogService, CreateBlogRequest } from '../../core/services/blog';
 import { FollowerService } from '../../core/services/follower';
 import { AuthService } from '../../core/services/auth';
+import { UserDirectoryService } from '../../core/services/user-directory';
 
 @Component({
   selector: 'app-blogs',
@@ -16,6 +17,8 @@ import { AuthService } from '../../core/services/auth';
 export class Blogs implements OnInit {
   blogs: BlogEntry[] = [];
   recommendations: number[] = [];
+  usernamesById: Record<number, string> = {};
+  imageDropActive = false;
 
   canCommentByAuthorId: Record<number, boolean> = {};
   commentTextByBlogId: Record<number, string> = {};
@@ -39,6 +42,7 @@ export class Blogs implements OnInit {
   constructor(
     private blogService: BlogService,
     private followerService: FollowerService,
+    private userDirectoryService: UserDirectoryService,
     public authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -46,6 +50,7 @@ export class Blogs implements OnInit {
   ngOnInit(): void {
     this.loadBlogs();
     this.loadRecommendations();
+    this.loadUsernames();
   }
 
   loadBlogs(): void {
@@ -77,7 +82,7 @@ export class Blogs implements OnInit {
       title: this.newBlog.title.trim(),
       description: this.newBlog.description.trim(),
       creationDate: '',
-      images: this.splitLinesOrCommas(this.newBlog.imageUrlsText)
+      images: this.blogImageValues()
     };
 
     this.message = '';
@@ -127,6 +132,19 @@ export class Blogs implements OnInit {
     });
   }
 
+  loadUsernames(): void {
+    this.userDirectoryService.getUsers().subscribe({
+      next: users => {
+        this.usernamesById = users.reduce<Record<number, string>>((lookup, user) => {
+          lookup[Number(user.id)] = user.username;
+          return lookup;
+        }, {});
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
   loadCanCommentState(): void {
     const authorIds = [...new Set(this.blogs.map(blog => blog.authorId))];
 
@@ -167,7 +185,7 @@ export class Blogs implements OnInit {
       .subscribe({
         next: () => {
           this.canCommentByAuthorId[authorId] = true;
-          this.message = `You are now following user ${authorId}.`;
+          this.message = `You are now following @${this.usernameFor(authorId)}.`;
           this.loadRecommendations();
           this.cdr.detectChanges();
         },
@@ -253,8 +271,98 @@ export class Blogs implements OnInit {
     return this.authService.getPersonId() === authorId;
   }
 
+  usernameFor(userId: number): string {
+    if (this.authService.getPersonId() === userId) {
+      return this.authService.getUsername() ?? this.usernamesById[userId] ?? `user-${userId}`;
+    }
+
+    return this.usernamesById[userId] ?? `user-${userId}`;
+  }
+
   blogImageAlt(index: number, blogTitle: string): string {
     return `Image ${index + 1} for ${blogTitle}`;
+  }
+
+  onBlogImageDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.imageDropActive = true;
+  }
+
+  onBlogImageDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.imageDropActive = false;
+  }
+
+  onBlogImageDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.imageDropActive = false;
+    this.errorMessage = '';
+
+    const files = Array.from(event.dataTransfer?.files ?? [])
+      .filter(item => item.type.startsWith('image/'));
+    const droppedText = event.dataTransfer?.getData('text/plain') ?? '';
+
+    if (files.length === 0 && droppedText.trim()) {
+      this.addBlogImages(this.parseBlogImages(droppedText));
+      return;
+    }
+
+    if (files.length === 0) {
+      this.errorMessage = 'Drop an image file or paste an image URL.';
+      return;
+    }
+
+    files.forEach(file => {
+      this.resizeImage(file)
+        .then(image => {
+          this.addBlogImages([image]);
+          this.cdr.detectChanges();
+        })
+        .catch(() => {
+          this.errorMessage = 'Could not process this image. Try another one or paste an image URL.';
+          this.cdr.detectChanges();
+        });
+    });
+  }
+
+  onBlogImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? [])
+      .filter(item => item.type.startsWith('image/'));
+
+    this.errorMessage = '';
+
+    if (files.length === 0) {
+      return;
+    }
+
+    files.forEach(file => {
+      this.resizeImage(file)
+        .then(image => {
+          this.addBlogImages([image]);
+          this.cdr.detectChanges();
+        })
+        .catch(() => {
+          this.errorMessage = 'Could not process this image. Try another one or paste an image URL.';
+          this.cdr.detectChanges();
+        });
+    });
+
+    input.value = '';
+  }
+
+  removeBlogImage(index: number): void {
+    const images = this.blogImageValues();
+    images.splice(index, 1);
+    this.newBlog.imageUrlsText = images.join('\n');
+  }
+
+  clearBlogImages(): void {
+    this.newBlog.imageUrlsText = '';
+  }
+
+  blogImageValues(): string[] {
+    return this.parseBlogImages(this.newBlog.imageUrlsText);
   }
 
   private resetCreateForm(): void {
@@ -271,5 +379,60 @@ export class Blogs implements OnInit {
       .split(/[\n,]/)
       .map(item => item.trim())
       .filter(Boolean);
+  }
+
+  private addBlogImages(images: string[]): void {
+    const nextImages = [...this.blogImageValues(), ...images.map(image => image.trim()).filter(Boolean)];
+    this.newBlog.imageUrlsText = nextImages.join('\n');
+  }
+
+  private parseBlogImages(value: string): string[] {
+    return value
+      .split('\n')
+      .flatMap(line => {
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+          return [];
+        }
+
+        return trimmed.startsWith('data:image/')
+          ? [trimmed]
+          : trimmed.split(',').map(item => item.trim()).filter(Boolean);
+      });
+  }
+
+  private resizeImage(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onerror = () => reject();
+      reader.onload = () => {
+        const image = new Image();
+
+        image.onerror = () => reject();
+        image.onload = () => {
+          const maxSide = 720;
+          const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+
+          const context = canvas.getContext('2d');
+
+          if (!context) {
+            reject();
+            return;
+          }
+
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.76));
+        };
+
+        image.src = String(reader.result);
+      };
+
+      reader.readAsDataURL(file);
+    });
   }
 }

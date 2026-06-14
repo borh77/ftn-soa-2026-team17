@@ -74,6 +74,35 @@
           </div>
 
           <div>
+            <div
+              class="blog-image-drop-zone"
+              [class.active]="imageDropActive"
+              (dragover)="onBlogImageDragOver($event)"
+              (dragleave)="onBlogImageDragLeave($event)"
+              (drop)="onBlogImageDrop($event)"
+            >
+              <div>
+                <strong>Drag blog images here</strong>
+                <span>Drop image files or image URLs.</span>
+              </div>
+            </div>
+
+            <div class="upload-row">
+              <label class="file-upload-button">
+                Upload images
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  (change)="onBlogImageSelected($event)"
+                />
+              </label>
+
+              @if (blogImageValues().length > 0) {
+                <button class="ghost-button" type="button" (click)="clearBlogImages()">Clear images</button>
+              }
+            </div>
+
             <label>
               Image URLs
               <textarea
@@ -84,6 +113,17 @@
               ></textarea>
             </label>
             <p class="muted small-copy">Optional. Separate image URLs with a comma or a new line.</p>
+
+            @if (blogImageValues().length > 0) {
+              <div class="create-image-preview-grid">
+                @for (image of blogImageValues(); track $index) {
+                  <div>
+                    <img [src]="image" alt="Selected blog image" />
+                    <button type="button" (click)="removeBlogImage($index)">Remove</button>
+                  </div>
+                }
+              </div>
+            }
           </div>
         </div>
 
@@ -109,7 +149,7 @@
       <div class="recommendation-list">
         @for (id of recommendations; track id) {
           <button class="ghost-button" type="button" (click)="followAuthor(id)">
-            Follow user {{ id }}
+            Follow @{{ usernameFor(id) }}
           </button>
         }
       </div>
@@ -127,7 +167,7 @@
           <div class="blog-head">
             <div>
               <h2>{{ blog.title }}</h2>
-              <p class="muted">Author ID: {{ blog.authorId }} - {{ blog.creationDate | date:'mediumDate' }}</p>
+              <p class="muted">@{{ usernameFor(blog.authorId) }} - {{ blog.creationDate | date:'mediumDate' }}</p>
             </div>
 
             <div class="blog-actions">
@@ -187,9 +227,14 @@
             <div class="comments-list">
               @for (comment of blog.comments; track comment.id) {
                 <div class="comment-card">
-                  <strong>User {{ comment.authorId }}</strong>
+                  <strong>@{{ usernameFor(comment.authorId) }}</strong>
                   <p>{{ comment.text }}</p>
-                  <small>{{ comment.createdAt | date:'medium' }}</small>
+                  <small>
+                    Created {{ comment.createdAt | date:'medium' }}
+                    @if (comment.lastModifiedAt) {
+                      - edited {{ comment.lastModifiedAt | date:'medium' }}
+                    }
+                  </small>
                 </div>
               } @empty {
                 <p class="muted">No comments yet.</p>

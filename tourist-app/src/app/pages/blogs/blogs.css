@@ -112,6 +112,87 @@ p {
   font-size: 13px;
 }
 
+.blog-image-drop-zone {
+  display: grid;
+  place-items: center;
+  min-height: 112px;
+  border: 2px dashed #d8b49f;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #fff7f1;
+  color: #7b5747;
+  text-align: center;
+}
+
+.blog-image-drop-zone.active {
+  border-color: #2a9d8f;
+  background: #e8f7f3;
+}
+
+.blog-image-drop-zone strong,
+.blog-image-drop-zone span {
+  display: block;
+}
+
+.blog-image-drop-zone span {
+  margin-top: 5px;
+  color: #8a6d60;
+}
+
+.upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.file-upload-button {
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 0 16px;
+  border: 1px solid #b9d8d1;
+  background: #ffffff;
+  color: #1f6f63;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload-button input {
+  display: none;
+}
+
+.create-image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.create-image-preview-grid img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #dce9e5;
+}
+
+.create-image-preview-grid button {
+  width: 100%;
+  margin-top: 5px;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px;
+  background: #fff3ed;
+  color: #b4532a;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .like-count {
   min-height: 36px;
   display: inline-flex;
