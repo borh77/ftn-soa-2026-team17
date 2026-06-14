@@ -28,6 +28,10 @@ export interface Tour {
   tags: string[];
   status: string;
   price: number;
+  routeLengthKm: number;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
+  travelTimes: TourTravelTime[];
   keyPoints: KeyPoint[];
 }
 
@@ -40,9 +44,22 @@ export interface CreateTourRequest {
   keyPoints: KeyPoint[];
 }
 
+export interface UpdateTourRequest {
+  name: string;
+  description: string;
+  difficulty: string;
+  tags: string[];
+  price: number;
+  travelTimes: TourTravelTime[];
+}
+
 export interface TourTravelTime {
   transportType: 'Walking' | 'Bicycle' | 'Car';
   minutes: number;
+}
+
+export interface PublishTourRequest {
+  price: number;
 }
 
 export interface TourReview {
@@ -132,6 +149,18 @@ export class TourService {
     });
   }
 
+  updateTour(tourId: number, request: UpdateTourRequest): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${tourId}`, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  deleteTour(tourId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${tourId}`, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
   addKeyPoint(tourId: number, keyPoint: KeyPoint): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/${tourId}/keypoints`, keyPoint, {
       headers: this.getAuthHeaders()
@@ -150,8 +179,20 @@ export class TourService {
     });
   }
 
-  publishTour(tourId: number): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${tourId}/publish`, null, {
+  publishTour(tourId: number, request: PublishTourRequest): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/publish`, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  archiveTour(tourId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/archive`, null, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  reactivateTour(tourId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${tourId}/reactivate`, null, {
       headers: this.getAuthHeaders()
     });
   }

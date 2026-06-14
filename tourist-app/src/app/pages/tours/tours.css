@@ -76,7 +76,8 @@ h3 {
 .tour-form,
 .tour-card,
 .keypoint-editor,
-.review-form {
+.review-form,
+.tour-details-editor {
   border: 1px solid #d9e4df;
   border-radius: 8px;
   background: #ffffff;
@@ -140,6 +141,24 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.travel-time-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-help {
+  margin: -8px 0 0;
+  color: #6b7f78;
+  font-size: 13px;
+}
+
+.tour-details-editor {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  background: #f7fbf9;
+  box-shadow: none;
 }
 
 .keypoint-editor {
@@ -266,6 +285,42 @@ textarea {
   background: #eaf4f1;
   color: #2f6f64;
   font-size: 13px;
+}
+
+.travel-times span {
+  background: #fff7ed;
+  color: #8b5a22;
+}
+
+.publish-readiness {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 1px solid #efd7c8;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fffaf5;
+  color: #8b5a22;
+}
+
+.publish-readiness.ready {
+  border-color: #b8dfcf;
+  background: #edf8f3;
+  color: #1f7a5f;
+}
+
+.publish-readiness span {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #ffffff;
+  color: #9c3d1f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.publish-readiness span.complete {
+  color: #1f7a5f;
 }
 
 .keypoints-preview {
@@ -547,6 +602,23 @@ textarea {
   color: #9c3d1f;
 }
 
+.muted-note {
+  background: #f7fbf9;
+  color: #5d756f;
+  border: 1px solid #d9e4df;
+}
+
+.publish-price {
+  display: grid;
+  grid-template-columns: auto minmax(92px, 130px);
+  gap: 8px;
+  align-items: center;
+}
+
+.publish-price input {
+  min-height: 40px;
+}
+
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -567,6 +639,7 @@ textarea {
   }
 
   .form-grid,
+  .travel-time-grid,
   .catalog,
   .keypoint-row {
     grid-template-columns: 1fr;

@@ -70,7 +70,6 @@ public class Tour : AggregateRoot
             throw new EntityValidationException("ID autora mora biti pozitivan broj.");
 
         ValidateDetails(name, description);
-        ValidateTravelTimes(travelTimes);
     }
 
     private static void ValidateDetails(string name, string description)
@@ -181,8 +180,10 @@ public class Tour : AggregateRoot
 
     public void SetTravelTimes(List<TourTravelTime> travelTimes)
     {
-        ValidateTravelTimes(travelTimes);
-        _travelTimes = travelTimes;
+        _travelTimes = travelTimes ?? new List<TourTravelTime>();
+
+        if (_travelTimes.Count > 0)
+            ValidateTravelTimes(_travelTimes);
     }
 
     public void SetRouteLengthKm(decimal routeLengthKm)
