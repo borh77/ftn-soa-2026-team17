@@ -510,7 +510,17 @@
                   }
                 </div>
               } @else {
-                <button class="primary-button" type="button" (click)="startTour(tour)">Start tour</button>
+                <button
+                  class="primary-button"
+                  type="button"
+                  (click)="startTour(tour)"
+                  [disabled]="!isPurchased(tour.id)"
+                >
+                  Start tour
+                </button>
+                @if (!isPurchased(tour.id)) {
+                  <p class="inline-notice error">Buy this tour before starting it.</p>
+                }
               }
 
               @if (executionMessages[tour.id]) {
@@ -613,6 +623,7 @@
                       type="datetime-local"
                       [name]="'visitedAt-' + tour.id"
                       [(ngModel)]="getReviewForm(tour.id).visitedAt"
+                      [max]="maxDateTimeLocal()"
                     />
                   </label>
                 </div>

@@ -447,6 +447,11 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (visitedAt.getTime() > Date.now()) {
+      this.reviewErrors[tour.id] = 'Datum posete ne moze biti u buducnosti.';
+      return;
+    }
+
     this.reviewSubmitting[tour.id] = true;
     this.reviewMessages[tour.id] = 'Recenzija je dodata.';
 
@@ -590,6 +595,11 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   startTour(tour: Tour): void {
     this.executionMessages[tour.id] = '';
     this.executionErrors[tour.id] = '';
+
+    if (!this.isPurchased(tour.id)) {
+      this.executionErrors[tour.id] = 'Moras kupiti turu pre pokretanja.';
+      return;
+    }
 
     this.positionSimulatorService.getMyPosition().subscribe({
       next: position => {
@@ -988,10 +998,15 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     return {
       rating: 5,
       comment: '',
-      visitedAt: new Date().toISOString().slice(0, 16),
+      visitedAt: this.toDateTimeLocalValue(new Date()),
       imageUrlInput: '',
       images: []
     };
+  }
+
+  private toDateTimeLocalValue(date: Date): string {
+    const timezoneOffsetMs = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
   }
 
   private emptyKeyPoint(ordinalNo: number): KeyPoint {
@@ -1152,6 +1167,10 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
 
   isPurchased(tourId: number): boolean {
     return this.purchasedTourIds.has(tourId);
+  }
+
+  maxDateTimeLocal(): string {
+    return this.toDateTimeLocalValue(new Date());
   }
 
   private hasValidCoordinates(point: KeyPoint): boolean {
