@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -24,6 +24,17 @@ export interface BlogEntry {
   isLikedByCurrentUser: boolean;
 }
 
+export interface CreateBlogRequest {
+  title: string;
+  description: string;
+  creationDate: string;
+  images: string[];
+}
+
+export interface CreateCommentRequest {
+  text: string;
+}
+
 export interface PagedResult<T> {
   results: T[];
   totalCount: number;
@@ -41,15 +52,40 @@ export class BlogService {
   ) {}
 
   getBlogs(page = 1, pageSize = 20): Observable<PagedResult<BlogEntry>> {
-    return this.http.get<PagedResult<BlogEntry>>(`${this.apiUrl}?page=${page}&pageSize=${pageSize}`, {
+    return this.http.get<PagedResult<BlogEntry>>(this.apiUrl, {
+      headers: this.getAuthHeaders(),
+      params: this.paginationParams(page, pageSize)
+    });
+  }
+
+  createBlog(request: CreateBlogRequest): Observable<BlogEntry> {
+    return this.http.post<BlogEntry>(this.apiUrl, request, {
       headers: this.getAuthHeaders()
     });
   }
 
-  addComment(blogId: number, text: string): Observable<CommentResponse> {
-    return this.http.post<CommentResponse>(`${this.apiUrl}/${blogId}/comments`, { text }, {
+  addComment(blogId: number, request: CreateCommentRequest): Observable<CommentResponse> {
+    return this.http.post<CommentResponse>(`${this.apiUrl}/${blogId}/comments`, request, {
       headers: this.getAuthHeaders()
     });
+  }
+
+  likeBlog(blogId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${blogId}/likes`, null, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  unlikeBlog(blogId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${blogId}/likes`, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  private paginationParams(page: number, pageSize: number): HttpParams {
+    return new HttpParams()
+      .set('page', page)
+      .set('pageSize', pageSize);
   }
 
   private getAuthHeaders(): HttpHeaders {
