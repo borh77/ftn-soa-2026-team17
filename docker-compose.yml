@@ -260,6 +260,24 @@ services:
     networks:
       - soa-network
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: soa-cadvisor
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8087:8080"
+    command:
+      - "--docker_only=true"
+    volumes:
+      - "/:/rootfs:ro"
+      - "/var/run:/var/run:rw"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"
+      - "/dev/disk/:/dev/disk:ro"
+    networks:
+      - soa-network
+
   node-exporter:
     image: prom/node-exporter:latest
     container_name: soa-node-exporter
@@ -283,6 +301,9 @@ services:
       - prometheus
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - soa-network
 
