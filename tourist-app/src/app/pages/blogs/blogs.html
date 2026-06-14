@@ -187,9 +187,66 @@
             <div class="comments-list">
               @for (comment of blog.comments; track comment.id) {
                 <div class="comment-card">
-                  <strong>User {{ comment.authorId }}</strong>
-                  <p>{{ comment.text }}</p>
-                  <small>{{ comment.createdAt | date:'medium' }}</small>
+                  <div class="comment-head">
+                    <strong>User {{ comment.authorId }}</strong>
+
+                    @if (isMyComment(comment)) {
+                      <div class="comment-actions">
+                        @if (!editingCommentByCommentId[comment.id]) {
+                          <button class="ghost-button small-button" type="button" (click)="startEditComment(comment)">
+                            Edit
+                          </button>
+                        }
+                        <button
+                          class="danger-button small-button"
+                          type="button"
+                          (click)="deleteComment(blog, comment)"
+                          [disabled]="commentActionLoadingByCommentId[comment.id]"
+                        >
+                          @if (commentActionLoadingByCommentId[comment.id]) {
+                            Deleting...
+                          } @else {
+                            Delete
+                          }
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                  @if (editingCommentByCommentId[comment.id]) {
+                    <form class="comment-edit-form" (ngSubmit)="updateComment(blog, comment)">
+                      <textarea
+                        rows="3"
+                        [name]="'edit-comment-' + comment.id"
+                        [(ngModel)]="editCommentTextByCommentId[comment.id]"
+                      ></textarea>
+                      <div class="form-actions">
+                        <button
+                          class="primary-button small-button"
+                          type="submit"
+                          [disabled]="commentActionLoadingByCommentId[comment.id]"
+                        >
+                          @if (commentActionLoadingByCommentId[comment.id]) {
+                            Saving...
+                          } @else {
+                            Save
+                          }
+                        </button>
+                        <button class="ghost-button small-button" type="button" (click)="cancelEditComment(comment.id)">
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  } @else {
+                    <p>{{ comment.text }}</p>
+                  }
+
+                  <small>
+                    {{ comment.createdAt | date:'medium' }}
+                    @if (comment.lastModifiedAt) {
+                      - edited {{ comment.lastModifiedAt | date:'medium' }}
+                    }
+                  </small>
                 </div>
               } @empty {
                 <p class="muted">No comments yet.</p>

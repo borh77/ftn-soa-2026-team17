@@ -35,6 +35,10 @@ export interface CreateCommentRequest {
   text: string;
 }
 
+export interface UpdateCommentRequest {
+  text: string;
+}
+
 export interface PagedResult<T> {
   results: T[];
   totalCount: number;
@@ -66,6 +70,22 @@ export class BlogService {
 
   addComment(blogId: number, request: CreateCommentRequest): Observable<CommentResponse> {
     return this.http.post<CommentResponse>(`${this.apiUrl}/${blogId}/comments`, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  updateComment(
+    blogId: number,
+    commentId: number,
+    request: UpdateCommentRequest
+  ): Observable<CommentResponse> {
+    return this.http.put<CommentResponse>(`${this.apiUrl}/${blogId}/comments/${commentId}`, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  deleteComment(blogId: number, commentId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${blogId}/comments/${commentId}`, {
       headers: this.getAuthHeaders()
     });
   }

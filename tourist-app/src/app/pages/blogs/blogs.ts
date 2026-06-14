@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { marked } from 'marked';
 import { finalize } from 'rxjs';
-import { BlogEntry, BlogService, CreateBlogRequest } from '../../core/services/blog';
+import { BlogEntry, BlogService, CommentResponse, CreateBlogRequest } from '../../core/services/blog';
 import { FollowerService } from '../../core/services/follower';
 import { AuthService } from '../../core/services/auth';
 
@@ -22,6 +22,9 @@ export class Blogs implements OnInit {
   followLoadingByAuthorId: Record<number, boolean> = {};
   commentLoadingByBlogId: Record<number, boolean> = {};
   likeLoadingByBlogId: Record<number, boolean> = {};
+  editCommentTextByCommentId: Record<number, string> = {};
+  editingCommentByCommentId: Record<number, boolean> = {};
+  commentActionLoadingByCommentId: Record<number, boolean> = {};
 
   isLoading = false;
   showCreateForm = false;
@@ -211,6 +214,83 @@ export class Blogs implements OnInit {
       });
   }
 
+  startEditComment(comment: CommentResponse): void {
+    this.errorMessage = '';
+    this.message = '';
+    this.editingCommentByCommentId[comment.id] = true;
+    this.editCommentTextByCommentId[comment.id] = comment.text;
+  }
+
+  cancelEditComment(commentId: number): void {
+    delete this.editingCommentByCommentId[commentId];
+    delete this.editCommentTextByCommentId[commentId];
+  }
+
+  updateComment(blog: BlogEntry, comment: CommentResponse): void {
+    const text = (this.editCommentTextByCommentId[comment.id] ?? '').trim();
+
+    if (!text) {
+      this.errorMessage = 'Comment text is required.';
+      return;
+    }
+
+    this.message = '';
+    this.errorMessage = '';
+    this.commentActionLoadingByCommentId[comment.id] = true;
+    this.cdr.detectChanges();
+
+    this.blogService.updateComment(blog.id, comment.id, { text })
+      .pipe(finalize(() => {
+        this.commentActionLoadingByCommentId[comment.id] = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: updatedComment => {
+          blog.comments = (blog.comments ?? []).map(existing =>
+            existing.id === updatedComment.id ? updatedComment : existing
+          );
+          this.cancelEditComment(comment.id);
+          this.message = 'Comment updated.';
+          this.cdr.detectChanges();
+        },
+        error: error => {
+          const backendMessage = error?.error?.error || error?.error?.message;
+          this.errorMessage = backendMessage || 'Comment could not be updated.';
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  deleteComment(blog: BlogEntry, comment: CommentResponse): void {
+    if (!confirm('Delete this comment?')) {
+      return;
+    }
+
+    this.message = '';
+    this.errorMessage = '';
+    this.commentActionLoadingByCommentId[comment.id] = true;
+    this.cdr.detectChanges();
+
+    this.blogService.deleteComment(blog.id, comment.id)
+      .pipe(finalize(() => {
+        this.commentActionLoadingByCommentId[comment.id] = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: () => {
+          blog.comments = (blog.comments ?? []).filter(existing => existing.id !== comment.id);
+          this.cancelEditComment(comment.id);
+          this.message = 'Comment deleted.';
+          this.cdr.detectChanges();
+        },
+        error: error => {
+          const backendMessage = error?.error?.error || error?.error?.message;
+          this.errorMessage = backendMessage || 'Comment could not be deleted.';
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
   toggleLike(blog: BlogEntry): void {
     this.message = '';
     this.errorMessage = '';
@@ -251,6 +331,10 @@ export class Blogs implements OnInit {
 
   isMyOwnBlog(authorId: number): boolean {
     return this.authService.getPersonId() === authorId;
+  }
+
+  isMyComment(comment: CommentResponse): boolean {
+    return this.authService.getPersonId() === comment.authorId;
   }
 
   blogImageAlt(index: number, blogTitle: string): string {
