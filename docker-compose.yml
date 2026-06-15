@@ -336,14 +336,37 @@ services:
     privileged: true
     ports:
       - "8087:8080"
-    command:
-      - "--docker_only=true"
     volumes:
       - "/:/rootfs:ro"
       - "/var/run:/var/run:rw"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "/sys:/sys:ro"
       - "/var/lib/docker/:/var/lib/docker:ro"
       - "/dev/disk/:/dev/disk:ro"
+    networks:
+      - soa-network
+
+  docker-exporter:
+    image: prometheusnet/docker_exporter:latest
+    container_name: soa-docker-exporter
+    restart: unless-stopped
+    ports:
+      - "9417:9417"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - soa-network
+
+  telegraf:
+    image: telegraf:latest
+    container_name: soa-telegraf
+    restart: unless-stopped
+    user: "0:0"
+    ports:
+      - "9273:9273"
+    volumes:
+      - /Users/marinasavic/.docker/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     networks:
       - soa-network
 
