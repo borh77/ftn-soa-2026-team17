@@ -439,7 +439,9 @@
                     [placeholder]="publishPrice(tour).toString()"
                   />
                 </label>
-                <button class="primary-button" type="button" (click)="publishTour(tour)" [disabled]="!canPublish(tour)">Publish</button>
+                <button class="primary-button" type="button" (click)="publishTour(tour)" [disabled]="!canPublish(tour) || lifecycleLoadingByTourId[tour.id]">
+                  {{ lifecycleLoadingByTourId[tour.id] ? 'Publishing...' : 'Publish' }}
+                </button>
                 <button
                   class="icon-button"
                   type="button"
@@ -454,10 +456,14 @@
                 </button>
               }
               @if (tour.status === 'Published') {
-                <button class="icon-button" type="button" (click)="archiveTour(tour)">Archive</button>
+                <button class="icon-button" type="button" (click)="archiveTour(tour)" [disabled]="lifecycleLoadingByTourId[tour.id]">
+                  {{ lifecycleLoadingByTourId[tour.id] ? 'Archiving...' : 'Archive' }}
+                </button>
               }
               @if (tour.status === 'Archived') {
-                <button class="primary-button" type="button" (click)="reactivateTour(tour)">Reactivate</button>
+                <button class="primary-button" type="button" (click)="reactivateTour(tour)" [disabled]="lifecycleLoadingByTourId[tour.id]">
+                  {{ lifecycleLoadingByTourId[tour.id] ? 'Reactivating...' : 'Reactivate' }}
+                </button>
               }
               <button class="ghost-button" type="button" (click)="openReviews(tour)">
                 Reviews ({{ reviewsByTourId[tour.id]?.length || 0 }})

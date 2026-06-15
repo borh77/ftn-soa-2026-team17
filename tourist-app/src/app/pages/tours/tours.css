@@ -314,6 +314,15 @@ textarea {
   flex-wrap: wrap;
 }
 
+.publish-price-field {
+  min-width: 160px;
+  max-width: 220px;
+}
+
+.publish-price-field input {
+  min-height: 40px;
+}
+
 .meta-row span {
   color: #58716a;
   font-size: 14px;

@@ -287,6 +287,22 @@ p {
   padding: 12px;
 }
 
+.comment-head,
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-head {
+  justify-content: space-between;
+}
+
+.comment-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .comment-card p {
   margin-bottom: 6px;
 }
@@ -349,6 +365,12 @@ p {
   padding: 14px;
 }
 
+.comment-edit-form {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 6px;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -377,7 +399,8 @@ textarea:focus {
 }
 
 .primary-button,
-.ghost-button {
+.ghost-button,
+.danger-button {
   min-height: 44px;
   border-radius: 8px;
   padding: 0 16px;
@@ -388,6 +411,12 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.small-button {
+  min-height: 34px;
+  padding: 0 11px;
+  font-size: 12px;
 }
 
 .primary-button {
@@ -404,6 +433,17 @@ textarea:focus {
   background: #ffffff;
   color: #1f6f63;
   border-color: #b9d8d1;
+}
+
+.danger-button {
+  background: #fff3ed;
+  color: #b4532a;
+  border-color: #efc2aa;
+}
+
+.danger-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .follow-status {
@@ -450,7 +490,8 @@ textarea:focus {
 @media (max-width: 700px) {
   .page-header,
   .blog-head,
-  .section-title {
+  .section-title,
+  .comment-head {
     align-items: flex-start;
     flex-direction: column;
   }

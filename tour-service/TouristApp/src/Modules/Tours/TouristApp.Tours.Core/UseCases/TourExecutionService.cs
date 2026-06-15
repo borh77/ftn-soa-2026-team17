@@ -4,6 +4,7 @@ using TouristApp.Tours.API.Dtos;
 using TouristApp.Tours.API.Public;
 using TouristApp.Tours.Core.Domain;
 using TouristApp.Tours.Core.Domain.Repositories;
+using TouristApp.Tours.Core.Observability;
 
 namespace TouristApp.Tours.Core.UseCases;
 
@@ -26,6 +27,12 @@ public class TourExecutionService : ITourExecutionService
 
     public TourExecutionDto Start(long touristId, long tourId, StartTourExecutionDto dto)
     {
+        using var activity = ToursTelemetry.ActivitySource.StartActivity("tour_execution.start");
+        activity?.SetTag("tourist.id", touristId);
+        activity?.SetTag("tour.id", tourId);
+        activity?.SetTag("tour.start.latitude", dto.Latitude);
+        activity?.SetTag("tour.start.longitude", dto.Longitude);
+
         var tour = _tourRepository.GetById(tourId)
             ?? throw new EntityValidationException($"Tura sa ID-om {tourId} nije pronađena.");
 
@@ -35,17 +42,33 @@ public class TourExecutionService : ITourExecutionService
         var execution = TourExecution.Start(tour, touristId, dto.Latitude, dto.Longitude);
         _tourExecutionRepository.Add(execution);
 
+        activity?.SetTag("tour_execution.id", execution.Id);
+        activity?.SetTag("tour_execution.status", execution.Status.ToString());
+
         return _mapper.Map<TourExecutionDto>(execution);
     }
 
     public KeyPointProximityResultDto CheckKeyPointProximity(long touristId, long executionId, CheckKeyPointProximityDto dto)
     {
+        using var activity = ToursTelemetry.ActivitySource.StartActivity("tour_execution.check_keypoint_proximity");
+        activity?.SetTag("tourist.id", touristId);
+        activity?.SetTag("tour_execution.id", executionId);
+        activity?.SetTag("tour.location.latitude", dto.Latitude);
+        activity?.SetTag("tour.location.longitude", dto.Longitude);
+        activity?.SetTag("tour.keypoint.threshold_meters", KeyPointProximityThresholdMeters);
+
         var execution = GetOwnedExecution(touristId, executionId);
         var tour = _tourRepository.GetById(execution.TourId)
             ?? throw new EntityValidationException($"Tura sa ID-om {execution.TourId} nije pronađena.");
 
         var reachedKeyPoint = execution.CheckKeyPointProximity(tour, dto.Latitude, dto.Longitude, KeyPointProximityThresholdMeters);
         _tourExecutionRepository.Update(execution);
+
+        activity?.SetTag("tour.id", execution.TourId);
+        activity?.SetTag("tour.keypoint.reached", reachedKeyPoint != null);
+        activity?.SetTag("tour.keypoint.ordinal_no", reachedKeyPoint?.KeyPointOrdinalNo);
+        activity?.SetTag("tour_execution.status", execution.Status.ToString());
+        activity?.SetTag("tour_execution.completed_keypoints.count", execution.CompletedKeyPoints.Count);
 
         return new KeyPointProximityResultDto(
             reachedKeyPoint != null,
@@ -56,18 +79,32 @@ public class TourExecutionService : ITourExecutionService
 
     public TourExecutionDto Complete(long touristId, long executionId)
     {
+        using var activity = ToursTelemetry.ActivitySource.StartActivity("tour_execution.complete");
+        activity?.SetTag("tourist.id", touristId);
+        activity?.SetTag("tour_execution.id", executionId);
+
         var execution = GetOwnedExecution(touristId, executionId);
         execution.Complete();
         _tourExecutionRepository.Update(execution);
+
+        activity?.SetTag("tour.id", execution.TourId);
+        activity?.SetTag("tour_execution.status", execution.Status.ToString());
 
         return _mapper.Map<TourExecutionDto>(execution);
     }
 
     public TourExecutionDto Abandon(long touristId, long executionId)
     {
+        using var activity = ToursTelemetry.ActivitySource.StartActivity("tour_execution.abandon");
+        activity?.SetTag("tourist.id", touristId);
+        activity?.SetTag("tour_execution.id", executionId);
+
         var execution = GetOwnedExecution(touristId, executionId);
         execution.Abandon();
         _tourExecutionRepository.Update(execution);
+
+        activity?.SetTag("tour.id", execution.TourId);
+        activity?.SetTag("tour_execution.status", execution.Status.ToString());
 
         return _mapper.Map<TourExecutionDto>(execution);
     }

@@ -80,6 +80,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   publishPriceByTourId: Record<number, number> = {};
   tourDetailsEditors: Record<number, TourDetailsEditor> = {};
   tourActionLoadingById: Record<number, boolean> = {};
+  lifecycleLoadingByTourId: Record<number, boolean> = {};
   selectedImage: string | null = null;
   selectedReviewTour: Tour | null = null;
 
@@ -291,12 +292,16 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.errorMessage = '';
     const price = Number(this.publishPriceByTourId[tour.id] ?? tour.price ?? 0);
 
-    if (price <= 0) {
+    if (!Number.isFinite(price) || price <= 0) {
       this.errorMessage = 'Enter a price greater than 0 before publishing.';
       return;
     }
 
-    this.tourService.publishTour(tour.id, { price }).subscribe({
+    this.lifecycleLoadingByTourId[tour.id] = true;
+    this.tourService.publishTour(tour.id, { price }).pipe(finalize(() => {
+      this.lifecycleLoadingByTourId[tour.id] = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: () => {
         this.message = `Tour "${tour.name}" was published.`;
         this.loadTours(false);
@@ -312,7 +317,11 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.message = '';
     this.errorMessage = '';
 
-    this.tourService.archiveTour(tour.id).subscribe({
+    this.lifecycleLoadingByTourId[tour.id] = true;
+    this.tourService.archiveTour(tour.id).pipe(finalize(() => {
+      this.lifecycleLoadingByTourId[tour.id] = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: () => {
         this.message = `Tour "${tour.name}" was archived.`;
         this.loadTours(false);
@@ -327,7 +336,11 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.message = '';
     this.errorMessage = '';
 
-    this.tourService.reactivateTour(tour.id).subscribe({
+    this.lifecycleLoadingByTourId[tour.id] = true;
+    this.tourService.reactivateTour(tour.id).pipe(finalize(() => {
+      this.lifecycleLoadingByTourId[tour.id] = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: () => {
         this.message = `Tour "${tour.name}" was reactivated.`;
         this.loadTours(false);
@@ -508,6 +521,11 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
 
     if (Number.isNaN(visitedAt.getTime())) {
       this.reviewErrors[tour.id] = 'Choose a valid visit date.';
+      return;
+    }
+
+    if (visitedAt.getTime() > Date.now()) {
+      this.reviewErrors[tour.id] = 'Visit date cannot be in the future.';
       return;
     }
 
