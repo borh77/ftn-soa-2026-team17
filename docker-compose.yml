@@ -21,6 +21,7 @@ services:
     restart: on-failure
     depends_on:
       - stakeholders-db
+      - fluent-bit
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://stakeholders-db:5432/stakeholders_db
       SPRING_DATASOURCE_USERNAME: user
@@ -32,6 +33,12 @@ services:
       - "9092:9092"
     networks:
       - soa-network
+    logging: &fluentbit-logging
+      driver: fluentd
+      options:
+        fluentd-address: "localhost:24224"
+        fluentd-async-connect: "true"
+        tag: "stakeholders-service"
   
   blog-mongo:
     image: mongo:7
@@ -66,6 +73,7 @@ services:
     depends_on:
       - blog-db
       - blog-mongo
+      - fluent-bit
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:80
@@ -84,6 +92,12 @@ services:
       - "8081:80"
     networks:
       - soa-network
+    logging:
+      <<: *fluentbit-logging
+      options:
+        fluentd-address: "localhost:24224"
+        fluentd-async-connect: "true"
+        tag: "blog-service"
 
     # follower treba da se dokerizuje zbog gateway-a
 
@@ -108,6 +122,7 @@ services:
     restart: on-failure
     depends_on:
       - follower-neo4j
+      - fluent-bit
     environment:
       PORT: 8082
       NEO4J_URI: bolt://follower-neo4j:7687
@@ -118,6 +133,12 @@ services:
       - "8084:8082"
     networks:
       - soa-network
+    logging:
+      <<: *fluentbit-logging
+      options:
+        fluentd-address: "localhost:24224"
+        fluentd-async-connect: "true"
+        tag: "follower-service"
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -157,6 +178,7 @@ services:
     depends_on:
       - tours-db
       - jaeger
+      - fluent-bit
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
@@ -176,6 +198,12 @@ services:
       - "8085:81"
     networks:
       - soa-network
+    logging:
+      <<: *fluentbit-logging
+      options:
+        fluentd-address: "localhost:24224"
+        fluentd-async-connect: "true"
+        tag: "tour-service"
 
   purchase-db:
     image: postgres:16
@@ -200,6 +228,7 @@ services:
     depends_on:
       - purchase-db
       - tour-service
+      - fluent-bit
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://purchase-db:5432/purchase_db
       SPRING_DATASOURCE_USERNAME: user
@@ -212,6 +241,12 @@ services:
       - "9091:9091"
     networks:
       - soa-network
+    logging:
+      <<: *fluentbit-logging
+      options:
+        fluentd-address: "localhost:24224"
+        fluentd-async-connect: "true"
+        tag: "purchase-service"
 
   gateway:
     build:
@@ -225,6 +260,7 @@ services:
       - tour-service
       - follower-service
       - purchase-service
+      - fluent-bit
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -233,6 +269,39 @@ services:
       - Grpc__StakeholdersServiceUrl=http://stakeholders-service:9092
     ports:
       - "8082:8080"
+    networks:
+      - soa-network
+    logging:
+      <<: *fluentbit-logging
+      options:
+        fluentd-address: "localhost:24224"
+        fluentd-async-connect: "true"
+        tag: "gateway"
+
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: soa-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    networks:
+      - soa-network
+
+  fluent-bit:
+    image: fluent/fluent-bit:4.0
+    container_name: soa-fluent-bit
+    restart: unless-stopped
+    depends_on:
+      - loki
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    volumes:
+      - ./monitoring/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
     networks:
       - soa-network
 
@@ -296,9 +365,13 @@ services:
     container_name: soa-grafana
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
     depends_on:
       - prometheus
+      - loki
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
@@ -315,6 +388,7 @@ volumes:
   tours_postgres_data:
   purchase_postgres_data:
   grafana_data:
+  loki_data:
 
 networks:
   soa-network:
