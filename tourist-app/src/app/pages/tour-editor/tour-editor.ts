@@ -4,6 +4,7 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
   Component,
+  HostListener,
   Inject,
   OnDestroy,
   OnInit,
@@ -28,6 +29,7 @@ export class TourEditor implements OnInit, AfterViewInit, OnDestroy {
   isLoading = false;
   isSaving = false;
   errorMessage = '';
+  selectedImage: string | null = null;
 
   form = {
     name: '',
@@ -174,6 +176,19 @@ export class TourEditor implements OnInit, AfterViewInit, OnDestroy {
     }
 
     return Math.round(total * 100) / 100;
+  }
+
+  openImage(image: string): void {
+    this.selectedImage = image;
+  }
+
+  closeImage(): void {
+    this.selectedImage = null;
+  }
+
+  @HostListener('document:keydown.escape')
+  closeImageOnEscape(): void {
+    this.closeImage();
   }
 
   onImageDragOver(event: DragEvent, index: number): void {
@@ -419,7 +434,7 @@ export class TourEditor implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private backendMessage(error: HttpErrorResponse): string {
-    return error.error?.detail || error.error?.title || error.error?.message || '';
+    return '';
   }
 
   private escapeHtml(value: string): string {

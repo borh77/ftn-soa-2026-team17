@@ -18,7 +18,12 @@
       </p>
     </div>
 
-    <button class="ghost-button" type="button" (click)="loadTours()">Refresh</button>
+    <div class="header-actions">
+      @if (role === 'GUIDE') {
+        <a class="primary-button" routerLink="/tours/new">Create tour</a>
+      }
+      <button class="ghost-button" type="button" (click)="loadTours()">Refresh</button>
+    </div>
   </div>
 
   @if (message) {
@@ -34,8 +39,9 @@
   }
 
   @if (role === 'GUIDE') {
-    <section class="workspace">
-      <form class="tour-form" (ngSubmit)="createTour()">
+    <section class="workspace" [class.single-column]="!showCreateTourForm">
+      @if (showCreateTourForm) {
+        <form class="tour-form" (ngSubmit)="createTour()">
         <div class="section-title">
           <h2>Create tour</h2>
           <span>Draft first, publish after review</span>
@@ -122,7 +128,7 @@
         </div>
 
         @if (newTour.keyPoints.length < 2) {
-          <p class="inline-notice muted-note">Draft mozes sacuvati odmah, ali za objavu su potrebne najmanje dve kljucne tacke.</p>
+          <p class="inline-notice muted-note">You can save the draft now, but publishing requires at least two key points.</p>
         }
 
         @for (point of newTour.keyPoints; track $index) {
@@ -187,8 +193,9 @@
           </div>
         }
 
-        <button class="primary-button" type="submit">Save draft</button>
-      </form>
+          <button class="primary-button" type="submit">Save draft</button>
+        </form>
+      }
 
       <section class="tour-list">
         <div class="section-title">
@@ -282,7 +289,7 @@
               }
             </div>
 
-            @if (tour.travelTimes?.length) {
+            @if (tour.travelTimes.length) {
               <div class="tag-row travel-times">
                 @for (time of tour.travelTimes; track time.transportType) {
                   <span>{{ time.transportType }} {{ time.minutes }} min</span>
@@ -295,7 +302,7 @@
                 <strong>{{ canPublish(tour) ? 'Ready to publish' : 'Draft requirements' }}</strong>
                 <span [class.complete]="tour.tags.length > 0">Tags</span>
                 <span [class.complete]="tour.keyPoints.length >= 2">2 key points</span>
-                <span [class.complete]="(tour.travelTimes?.length || 0) > 0">Travel time</span>
+                <span [class.complete]="tour.travelTimes.length > 0">Travel time</span>
               </div>
             }
 
@@ -317,7 +324,7 @@
               <div class="section-title compact">
                 <h3>Key points</h3>
                 @if (tour.status === 'Draft') {
-                  <button class="ghost-button" type="button" (click)="startAddKeyPoint(tour)">Add on map</button>
+                  <a class="ghost-button" [routerLink]="['/tours', tour.id, 'edit']">Edit route</a>
                 } @else {
                   <span>Published route is locked</span>
                 }
@@ -402,19 +409,15 @@
                 @for (point of tour.keyPoints; track point.ordinalNo) {
                   <div class="keypoint-row">
                     @if (point.imageUrl) {
-                      <img [src]="point.imageUrl" alt="Key point image" />
+                      <button class="image-view-button keypoint-image-button" type="button" (click)="openImage(point.imageUrl)" aria-label="View key point image">
+                        <img [src]="point.imageUrl" alt="Key point image" />
+                      </button>
                     }
                     <div>
                       <strong>{{ point.ordinalNo }}. {{ point.name }}</strong>
                       <p>{{ point.description }}</p>
                       <small>{{ point.latitude }}, {{ point.longitude }}</small>
                     </div>
-                    @if (tour.status === 'Draft') {
-                      <div class="keypoint-row-actions">
-                        <button class="ghost-button small" type="button" (click)="startEditKeyPoint(tour, point)">Edit</button>
-                        <button class="icon-button small" type="button" (click)="deleteKeyPoint(tour, point)">Delete</button>
-                      </div>
-                    }
                   </div>
                 }
               </div>
@@ -423,7 +426,7 @@
             <div class="card-actions">
               @if (tour.status === 'Draft') {
                 @if (!tourDetailsEditors[tour.id]) {
-                  <button class="ghost-button" type="button" (click)="startTourEdit(tour)">Edit details</button>
+                  <a class="ghost-button" [routerLink]="['/tours', tour.id, 'edit']">Edit tour</a>
                 }
                 <label class="publish-price">
                   Price
@@ -456,31 +459,10 @@
               @if (tour.status === 'Archived') {
                 <button class="primary-button" type="button" (click)="reactivateTour(tour)">Reactivate</button>
               }
-              <button class="ghost-button" type="button" (click)="toggleReviews(tour)">Reviews</button>
+              <button class="ghost-button" type="button" (click)="openReviews(tour)">
+                Reviews ({{ reviewsByTourId[tour.id]?.length || 0 }})
+              </button>
             </div>
-
-            @if (reviewsByTourId[tour.id]) {
-              <div class="reviews">
-                @for (review of reviewsByTourId[tour.id]; track review.id) {
-                  <div class="review">
-                    <strong>{{ review.touristUsername }}</strong>
-              <span>
-                {{ stars(review.rating) }}
-                @if (review.id < 0) {
-                  - saving
-                }
-              </span>
-              <p>{{ review.comment }}</p>
-              <small>
-                Visited {{ review.visitedAt | date: 'mediumDate' }} -
-                reviewed {{ review.createdAt | date: 'mediumDate' }}
-              </small>
-            </div>
-          } @empty {
-            <p class="muted">No reviews yet.</p>
-                }
-              </div>
-            }
           </article>
         } @empty {
           <p class="muted">You have not created a tour yet.</p>
@@ -506,7 +488,7 @@
             <span>{{ tour.price || 0 }} RSD</span>
           </div>
 
-          @if (tour.travelTimes?.length) {
+          @if (tour.travelTimes.length) {
             <div class="tag-row travel-times">
               @for (time of tour.travelTimes; track time.transportType) {
                 <span>{{ time.transportType }} {{ time.minutes }} min</span>
@@ -523,6 +505,11 @@
           <div class="keypoints-preview">
             @for (point of visibleKeyPoints(tour); track point.ordinalNo) {
               <div>
+                @if (point.imageUrl) {
+                  <button class="image-view-button preview-point-image" type="button" (click)="openImage(point.imageUrl)" aria-label="View key point image">
+                    <img [src]="point.imageUrl" alt="Key point image" />
+                  </button>
+                }
                 <strong>{{ point.ordinalNo }}. {{ point.name }}</strong>
                 <p>{{ point.description }}</p>
               </div>
@@ -539,7 +526,7 @@
             <div class="purchase-panel">
               @if (isPurchased(tour.id)) {
                 <div class="purchase-status success">
-                  Purchased — this tour is unlocked.
+                  Purchased - this tour is unlocked.
                 </div>
               } @else if (isInCart(tour.id)) {
                 <a class="primary-button purchase-button" routerLink="/cart">
@@ -639,7 +626,9 @@
                   @if (review.images.length) {
                     <div class="review-images">
                       @for (image of review.images; track image) {
-                        <img [src]="image" alt="Review image" />
+                        <button class="image-view-button" type="button" (click)="openImage(image)" aria-label="View review image">
+                          <img [src]="image" alt="Review image" />
+                        </button>
                       }
                     </div>
                   }
@@ -770,5 +759,57 @@
         <p class="muted">No published tours yet.</p>
       }
     </section>
+  }
+
+  @if (selectedReviewTour; as reviewTour) {
+    <div class="review-modal-backdrop" role="dialog" aria-modal="true" aria-label="Tour reviews" (click)="closeReviews()">
+      <section class="review-modal" (click)="$event.stopPropagation()">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Traveller feedback</p>
+            <h2>{{ reviewTour.name }}</h2>
+          </div>
+          <button class="ghost-button" type="button" (click)="closeReviews()">Close</button>
+        </div>
+
+        @if (!reviewsLoaded[reviewTour.id]) {
+          <p class="muted">Loading reviews...</p>
+        } @else {
+          <div class="reviews">
+            @for (review of reviewsByTourId[reviewTour.id]; track review.id) {
+              <div class="review">
+                <div class="review-head">
+                  <strong>{{ review.touristUsername }}</strong>
+                  <span>{{ stars(review.rating) }}</span>
+                </div>
+                <p>{{ review.comment }}</p>
+                <small>
+                  Visited {{ review.visitedAt | date: 'mediumDate' }} -
+                  reviewed {{ review.createdAt | date: 'mediumDate' }}
+                </small>
+                @if (review.images.length) {
+                  <div class="review-images">
+                    @for (image of review.images; track image) {
+                      <button class="image-view-button" type="button" (click)="openImage(image)" aria-label="View review image">
+                        <img [src]="image" alt="Review image" />
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            } @empty {
+              <p class="muted">No reviews yet.</p>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  }
+
+  @if (selectedImage) {
+    <div class="image-lightbox" role="dialog" aria-modal="true" aria-label="Full-size tour image" (click)="closeImage()">
+      <button class="lightbox-close" type="button" (click)="closeImage()" aria-label="Close image">Close</button>
+      <img [src]="selectedImage" alt="Full-size tour image" (click)="$event.stopPropagation()" />
+    </div>
   }
 </section>

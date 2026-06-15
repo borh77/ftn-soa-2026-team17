@@ -119,7 +119,16 @@ input:focus, select:focus, textarea:focus {
 }
 
 .image-drop.active { border-color: #2a9d8f; background: #e8f7f3; }
-.image-drop img { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 8px; }
+.image-preview-button {
+  width: 100%;
+  border: 1px solid #dce9e5;
+  border-radius: 8px;
+  padding: 0;
+  overflow: hidden;
+  background: #ffffff;
+  cursor: zoom-in;
+}
+.image-drop img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; }
 .image-drop span { display: block; margin: 5px 0 10px; color: #8a6d60; }
 
 .upload-button {
@@ -153,13 +162,12 @@ input:focus, select:focus, textarea:focus {
 .primary-button:disabled { opacity: .65; cursor: wait; }
 
 .save-bar {
-  position: sticky;
-  bottom: 12px;
-  border: 1px solid #d9e4df;
-  border-radius: 8px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 14px 30px rgba(38, 70, 83, 0.14);
+  position: static;
+  justify-content: flex-end;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .notice, .empty-state {
@@ -168,6 +176,38 @@ input:focus, select:focus, textarea:focus {
 }
 .error { border: 1px solid #efb2a5; background: #fff1ef; color: #b33b24; }
 .empty-state { border: 1px dashed #c9d8d2; background: #f7fbf9; color: #6b7f78; text-align: center; }
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 60px 24px 24px;
+  background: rgba(20, 36, 34, 0.88);
+  cursor: zoom-out;
+}
+.image-lightbox img {
+  max-width: min(1100px, 100%);
+  max-height: calc(100vh - 84px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .4);
+  cursor: default;
+}
+.lightbox-close {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  min-height: 40px;
+  border: 1px solid rgba(255,255,255,.55);
+  border-radius: 6px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #264653;
+  font-weight: 800;
+  cursor: pointer;
+}
 
 @media (max-width: 700px) {
   .editor-header, .section-title, .point-head, .map-copy { align-items: flex-start; flex-direction: column; }
