@@ -28,10 +28,10 @@ export interface Tour {
   tags: string[];
   status: string;
   price: number;
-  routeLengthKm?: number;
+  routeLengthKm: number;
   publishedAt?: string | null;
   archivedAt?: string | null;
-  travelTimes?: TourTravelTime[];
+  travelTimes: TourTravelTime[];
   keyPoints: KeyPoint[];
 }
 
@@ -42,6 +42,15 @@ export interface CreateTourRequest {
   tags: string[];
   travelTimes: TourTravelTime[];
   keyPoints: KeyPoint[];
+}
+
+export interface UpdateTourRequest {
+  name: string;
+  description: string;
+  difficulty: string;
+  tags: string[];
+  price: number;
+  travelTimes: TourTravelTime[];
 }
 
 export interface TourTravelTime {
@@ -136,6 +145,18 @@ export class TourService {
 
   createTour(request: CreateTourRequest): Observable<Tour> {
     return this.http.post<Tour>(this.apiUrl, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  updateTour(tourId: number, request: UpdateTourRequest): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${tourId}`, request, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  deleteTour(tourId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${tourId}`, {
       headers: this.getAuthHeaders()
     });
   }

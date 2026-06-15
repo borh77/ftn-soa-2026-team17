@@ -1,0 +1,131 @@
+<section class="editor-page">
+  <header class="editor-header">
+    <div>
+      <p class="eyebrow">Tour editor</p>
+      <h1>{{ isEditMode ? 'Update tour' : 'Create new tour' }}</h1>
+      <p>{{ isEditMode ? 'Update the draft details and route.' : 'Add basic details now and complete the route before publishing.' }}</p>
+    </div>
+    <a class="ghost-button" routerLink="/tours">Back to my tours</a>
+  </header>
+
+  @if (errorMessage) {
+    <p class="notice error">{{ errorMessage }}</p>
+  }
+
+  @if (isLoading) {
+    <p class="muted">Loading tour...</p>
+  } @else {
+    <form class="editor-form" (ngSubmit)="save()">
+      <section class="form-section">
+        <div class="section-title">
+          <h2>Basic details</h2>
+          <span>{{ isEditMode ? 'Editing draft' : 'New tour will start as draft' }}</span>
+        </div>
+
+        <div class="form-grid">
+          <label>Name <input type="text" name="name" [(ngModel)]="form.name" required /></label>
+          <label>
+            Difficulty
+            <select name="difficulty" [(ngModel)]="form.difficulty">
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </label>
+        </div>
+
+        <label>Description <textarea rows="5" name="description" [(ngModel)]="form.description" required></textarea></label>
+        <label>Tags <input type="text" name="tags" [(ngModel)]="form.tagsText" placeholder="history, nature, family" /></label>
+
+        <div class="form-grid travel-grid">
+          <label>Walking minutes <input type="number" min="0" name="walking" [(ngModel)]="form.walkingMinutes" /></label>
+          <label>Bicycle minutes <input type="number" min="0" name="bicycle" [(ngModel)]="form.bicycleMinutes" /></label>
+          <label>Car minutes <input type="number" min="0" name="car" [(ngModel)]="form.carMinutes" /></label>
+        </div>
+        <p class="form-help">Travel time is optional for drafts and required before publishing.</p>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">
+          <div>
+            <h2>Route and key points</h2>
+            <span>{{ form.keyPoints.length }} points · {{ routeLengthKm() }} km</span>
+          </div>
+          @if (form.keyPoints.length) {
+            <button class="danger-button" type="button" (click)="clearPoints()">Clear route</button>
+          }
+        </div>
+
+        <div class="map-copy">
+          <strong>Click the map to add a key point</strong>
+          <span>Select a point below, then drag its marker to change the coordinate.</span>
+        </div>
+        <div id="tour-editor-map" class="route-map"></div>
+
+        <div class="point-list">
+          @for (point of form.keyPoints; track $index) {
+            <article class="point-editor" [class.active]="selectedPointIndex === $index">
+              <div class="point-head">
+                <strong>Key point {{ $index + 1 }}</strong>
+                <div class="actions">
+                  <button class="ghost-button small" type="button" (click)="selectPoint($index)">Select on map</button>
+                  <button class="danger-button small" type="button" (click)="removePoint($index)">Remove</button>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <label>Name <input type="text" [name]="'point-name-' + $index" [(ngModel)]="point.name" /></label>
+                <label>Image URL <input type="text" [name]="'point-image-' + $index" [(ngModel)]="point.imageUrl" /></label>
+              </div>
+
+              <div
+                class="image-drop"
+                [class.active]="imageDropActive[$index]"
+                (dragover)="onImageDragOver($event, $index)"
+                (dragleave)="onImageDragLeave($event, $index)"
+                (drop)="onImageDrop($event, point, $index)"
+              >
+                @if (point.imageUrl) {
+                  <button class="image-preview-button" type="button" (click)="openImage(point.imageUrl)" aria-label="View key point image">
+                    <img [src]="point.imageUrl" alt="Key point preview" />
+                  </button>
+                }
+                <div>
+                  <strong>Drop an image here</strong>
+                  <span>Image file or image URL</span>
+                  <label class="upload-button">
+                    Upload image
+                    <input type="file" accept="image/*" (change)="onImageSelected($event, point)" />
+                  </label>
+                </div>
+              </div>
+
+              <label>Description <textarea rows="3" [name]="'point-description-' + $index" [(ngModel)]="point.description"></textarea></label>
+              <label>Secret text <input type="text" [name]="'point-secret-' + $index" [(ngModel)]="point.secretText" /></label>
+              <div class="form-grid">
+                <label>Latitude <input type="number" step="0.000001" [name]="'point-lat-' + $index" [(ngModel)]="point.latitude" (ngModelChange)="onCoordinateChange()" /></label>
+                <label>Longitude <input type="number" step="0.000001" [name]="'point-lon-' + $index" [(ngModel)]="point.longitude" (ngModelChange)="onCoordinateChange()" /></label>
+              </div>
+            </article>
+          } @empty {
+            <p class="empty-state">No key points yet. Click the map to add the first point.</p>
+          }
+        </div>
+      </section>
+
+      <div class="save-bar">
+        <a class="ghost-button" routerLink="/tours">Cancel</a>
+        <button class="primary-button" type="submit" [disabled]="isSaving">
+          {{ isSaving ? 'Saving...' : (isEditMode ? 'Save tour changes' : 'Create draft') }}
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (selectedImage) {
+    <div class="image-lightbox" role="dialog" aria-modal="true" aria-label="Full-size key point image" (click)="closeImage()">
+      <button class="lightbox-close" type="button" (click)="closeImage()" aria-label="Close image">Close</button>
+      <img [src]="selectedImage" alt="Full-size key point image" (click)="$event.stopPropagation()" />
+    </div>
+  }
+</section>

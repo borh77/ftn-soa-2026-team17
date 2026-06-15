@@ -5,6 +5,7 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
   Component,
+  HostListener,
   Inject,
   OnDestroy,
   OnInit,
@@ -17,7 +18,7 @@ import { PositionSimulatorService } from '../../core/services/position-simulator
 import { KeyPoint, Tour, TourExecution, TourReview, TourService } from '../../core/services/tour';
 import { PurchaseService } from '../../core/services/purchase';
 import { finalize } from 'rxjs';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 interface ReviewForm {
   rating: number;
@@ -31,6 +32,16 @@ interface ExistingKeyPointEditor {
   mode: 'add' | 'edit';
   originalOrdinalNo?: number;
   point: KeyPoint;
+}
+
+interface TourDetailsEditor {
+  name: string;
+  description: string;
+  difficulty: string;
+  tagsText: string;
+  walkingMinutes: number;
+  bicycleMinutes: number;
+  carMinutes: number;
 }
 
 @Component({
@@ -67,10 +78,15 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   keyPointErrors: Record<number, string> = {};
   keyPointImageDropActive: Record<string, boolean> = {};
   publishPriceByTourId: Record<number, number> = {};
+  tourDetailsEditors: Record<number, TourDetailsEditor> = {};
+  tourActionLoadingById: Record<number, boolean> = {};
   lifecycleLoadingByTourId: Record<number, boolean> = {};
+  selectedImage: string | null = null;
+  selectedReviewTour: Tour | null = null;
 
   currentRole: string | null = null;
   isLoading = false;
+  showCreateTourForm = false;
   message = '';
   errorMessage = '';
 
@@ -81,7 +97,9 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     description: '',
     difficulty: 'Easy',
     tagsText: '',
-    walkingMinutes: 60,
+    walkingMinutes: 0,
+    bicycleMinutes: 0,
+    carMinutes: 0,
     keyPoints: [] as KeyPoint[]
   };
 
@@ -95,6 +113,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     private tourService: TourService,
     private positionSimulatorService: PositionSimulatorService,
     private purchaseService: PurchaseService,
+    private router: Router,
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) platformId: object
   ) {
@@ -132,14 +151,16 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     return this.currentRole;
   }
 
-  loadTours(): void {
-    this.message = '';
-    this.errorMessage = '';
+  loadTours(clearNotices = true): void {
+    if (clearNotices) {
+      this.message = '';
+      this.errorMessage = '';
+    }
     this.currentRole = this.authService.getUserRole();
 
     if (!this.currentRole) {
       this.isLoading = false;
-      this.errorMessage = 'Uloguj se da bi videla ture.';
+      this.errorMessage = 'Log in to view tours.';
       return;
     }
 
@@ -156,14 +177,15 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.errorMessage = '';
 
     const keyPoints = this.normalizedDraftKeyPoints();
+    const travelTimes = this.newTourTravelTimes();
 
-    if (keyPoints.length < 2) {
-      this.errorMessage = 'Moras dodati najmanje dve kljucne tacke klikom na mapu.';
+    if (!this.newTour.name.trim() || !this.newTour.description.trim()) {
+      this.errorMessage = 'Tour name and description are required.';
       return;
     }
 
     if (keyPoints.some(point => !this.isCompleteKeyPoint(point))) {
-      this.errorMessage = 'Svaka kljucna tacka mora imati naziv, opis, tajni tekst, sliku i validne koordinate.';
+      this.errorMessage = 'Every key point needs a name, description, secret text, image, and valid coordinates.';
       return;
     }
 
@@ -172,25 +194,97 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       description: this.newTour.description.trim(),
       difficulty: this.newTour.difficulty,
       tags: this.splitLinesOrCommas(this.newTour.tagsText),
-      travelTimes: [
-        {
-          transportType: 'Walking',
-          minutes: Math.max(1, Number(this.newTour.walkingMinutes) || 60)
-        }
-      ],
+      travelTimes,
       keyPoints
     }).subscribe({
       next: tour => {
-        this.message = `Tura "${tour.name}" je sacuvana kao draft.`;
+        this.message = `Tour "${tour.name}" was saved as a draft.`;
         this.resetTourForm();
-        this.loadGuideTours();
+        this.showCreateTourForm = false;
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
         this.errorMessage = this.backendDetail(error)
           || this.backendTitle(error)
-          || 'Tura nije kreirana. Proveri da li ima bar dve kljucne tacke i sva obavezna polja.';
+          || 'The tour could not be created. Check its basic details and key points.';
       }
     });
+  }
+
+  startTourEdit(tour: Tour): void {
+    this.tourDetailsEditors[tour.id] = {
+      name: tour.name,
+      description: tour.description,
+      difficulty: tour.difficulty,
+      tagsText: tour.tags.join(', '),
+      walkingMinutes: this.travelMinutes(tour, 'Walking'),
+      bicycleMinutes: this.travelMinutes(tour, 'Bicycle'),
+      carMinutes: this.travelMinutes(tour, 'Car')
+    };
+  }
+
+  cancelTourEdit(tourId: number): void {
+    delete this.tourDetailsEditors[tourId];
+  }
+
+  saveTourDetails(tour: Tour): void {
+    const editor = this.tourDetailsEditors[tour.id];
+
+    if (!editor) {
+      return;
+    }
+
+    if (!editor.name.trim() || !editor.description.trim()) {
+      this.errorMessage = 'Tour name and description are required.';
+      return;
+    }
+
+    this.tourActionLoadingById[tour.id] = true;
+    this.message = '';
+    this.errorMessage = '';
+
+    this.tourService.updateTour(tour.id, {
+      name: editor.name.trim(),
+      description: editor.description.trim(),
+      difficulty: editor.difficulty,
+      tags: this.splitLinesOrCommas(editor.tagsText),
+      price: 0,
+      travelTimes: this.editorTravelTimes(editor)
+    }).pipe(finalize(() => {
+      this.tourActionLoadingById[tour.id] = false;
+      this.cdr.detectChanges();
+    })).subscribe({
+      next: () => {
+        delete this.tourDetailsEditors[tour.id];
+        this.message = `Tour "${editor.name.trim()}" was updated.`;
+        this.loadTours(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.errorMessage = this.backendDetail(error) || 'The tour details could not be saved.';
+      }
+    });
+  }
+
+  deleteTour(tour: Tour): void {
+    this.tourActionLoadingById[tour.id] = true;
+    this.message = '';
+    this.errorMessage = '';
+
+    this.tourService.deleteTour(tour.id)
+      .pipe(finalize(() => {
+        this.tourActionLoadingById[tour.id] = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: () => {
+          delete this.tourDetailsEditors[tour.id];
+          this.message = `Tour "${tour.name}" was deleted.`;
+          this.loadTours(false);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.errorMessage = this.backendDetail(error) || 'The draft tour could not be deleted.';
+        }
+      });
   }
 
   publishTour(tour: Tour): void {
@@ -199,26 +293,22 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     const price = Number(this.publishPriceByTourId[tour.id] ?? tour.price ?? 0);
 
     if (!Number.isFinite(price) || price <= 0) {
-      this.errorMessage = 'Unesi cenu vecu od 0 pre publishovanja ture.';
+      this.errorMessage = 'Enter a price greater than 0 before publishing.';
       return;
     }
 
     this.lifecycleLoadingByTourId[tour.id] = true;
-
-    this.tourService.publishTour(tour.id, { price }).pipe(
-      finalize(() => {
-        this.lifecycleLoadingByTourId[tour.id] = false;
-        this.cdr.detectChanges();
-      })
-    ).subscribe({
+    this.tourService.publishTour(tour.id, { price }).pipe(finalize(() => {
+      this.lifecycleLoadingByTourId[tour.id] = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: () => {
-        this.message = `Tura "${tour.name}" je publishovana.`;
-        this.loadGuideTours();
+        this.message = `Tour "${tour.name}" was published.`;
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
         this.errorMessage = this.backendDetail(error)
-          || this.backendTitle(error)
-          || 'Tura nije publishovana. Backend trazi validnu turu sa dovoljno kljucnih tacaka i cenom vecom od 0.';
+          || 'The tour could not be published. It needs basic details, tags, at least two key points, and a travel time.';
       }
     });
   }
@@ -226,20 +316,18 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   archiveTour(tour: Tour): void {
     this.message = '';
     this.errorMessage = '';
-    this.lifecycleLoadingByTourId[tour.id] = true;
 
-    this.tourService.archiveTour(tour.id).pipe(
-      finalize(() => {
-        this.lifecycleLoadingByTourId[tour.id] = false;
-        this.cdr.detectChanges();
-      })
-    ).subscribe({
+    this.lifecycleLoadingByTourId[tour.id] = true;
+    this.tourService.archiveTour(tour.id).pipe(finalize(() => {
+      this.lifecycleLoadingByTourId[tour.id] = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: () => {
-        this.message = `Tura "${tour.name}" je arhivirana.`;
-        this.loadGuideTours();
+        this.message = `Tour "${tour.name}" was archived.`;
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
-        this.errorMessage = this.backendDetail(error) || 'Tura nije arhivirana.';
+        this.errorMessage = this.backendDetail(error) || 'The tour could not be archived.';
       }
     });
   }
@@ -247,20 +335,18 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   reactivateTour(tour: Tour): void {
     this.message = '';
     this.errorMessage = '';
-    this.lifecycleLoadingByTourId[tour.id] = true;
 
-    this.tourService.reactivateTour(tour.id).pipe(
-      finalize(() => {
-        this.lifecycleLoadingByTourId[tour.id] = false;
-        this.cdr.detectChanges();
-      })
-    ).subscribe({
+    this.lifecycleLoadingByTourId[tour.id] = true;
+    this.tourService.reactivateTour(tour.id).pipe(finalize(() => {
+      this.lifecycleLoadingByTourId[tour.id] = false;
+      this.cdr.detectChanges();
+    })).subscribe({
       next: () => {
-        this.message = `Tura "${tour.name}" je ponovo aktivirana.`;
-        this.loadGuideTours();
+        this.message = `Tour "${tour.name}" was reactivated.`;
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
-        this.errorMessage = this.backendDetail(error) || 'Tura nije ponovo aktivirana.';
+        this.errorMessage = this.backendDetail(error) || 'The tour could not be reactivated.';
       }
     });
   }
@@ -280,7 +366,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
         next: cart => {
           this.cartTourIds = new Set(cart.items.map(item => item.tourId));
           this.cartMessages[tour.id] = `Tour "${tour.name}" has been added to cart.`;
-          this.cdr.detectChanges();
+          this.loadTours(false);
         },
         error: error => {
           const backendMessage = error?.error?.message;
@@ -291,7 +377,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   }
 
   addKeyPoint(): void {
-    this.errorMessage = 'Klikni na mapu da dodas sledecu kljucnu tacku.';
+    this.errorMessage = 'Click the map to add the next key point.';
     this.scheduleMapRender();
   }
 
@@ -327,18 +413,9 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.scheduleMapRender();
   }
 
-  toggleReviews(tour: Tour): void {
-    if (this.reviewsByTourId[tour.id]) {
-      delete this.reviewsByTourId[tour.id];
-      return;
-    }
-
-    this.loadReviews(tour.id);
-  }
-
   startAddKeyPoint(tour: Tour): void {
     const lastPoint = tour.keyPoints[tour.keyPoints.length - 1];
-    this.keyPointMessages[tour.id] = 'Klikni na mapu da izaberes poziciju nove tacke.';
+    this.keyPointMessages[tour.id] = 'Click the map to choose the new point position.';
     this.keyPointErrors[tour.id] = '';
     this.activeKeyPointEditors[tour.id] = {
       mode: 'add',
@@ -352,7 +429,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   }
 
   startEditKeyPoint(tour: Tour, point: KeyPoint): void {
-    this.keyPointMessages[tour.id] = 'Klikni na mapu da promenis koordinatu tacke.';
+    this.keyPointMessages[tour.id] = 'Click the map to change the point coordinate.';
     this.keyPointErrors[tour.id] = '';
     this.activeKeyPointEditors[tour.id] = {
       mode: 'edit',
@@ -386,13 +463,13 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     request.subscribe({
       next: () => {
         this.keyPointMessages[tour.id] = editor.mode === 'add'
-          ? 'Kljucna tacka je dodata.'
-          : 'Kljucna tacka je izmenjena.';
+          ? 'Key point added.'
+          : 'Key point updated.';
         delete this.activeKeyPointEditors[tour.id];
-        this.loadGuideTours();
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
-        this.keyPointErrors[tour.id] = this.backendDetail(error) || 'Kljucna tacka nije sacuvana. Proveri naziv, opis, sliku i koordinate.';
+        this.keyPointErrors[tour.id] = this.backendDetail(error) || 'The key point could not be saved. Check its name, description, image, and coordinates.';
       }
     });
   }
@@ -406,11 +483,11 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
 
     this.tourService.deleteKeyPoint(tour.id, point.ordinalNo).subscribe({
       next: () => {
-        this.keyPointMessages[tour.id] = 'Kljucna tacka je obrisana.';
-        this.loadGuideTours();
+        this.keyPointMessages[tour.id] = 'Key point deleted.';
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
-        this.keyPointErrors[tour.id] = this.backendDetail(error) || 'Kljucna tacka nije obrisana.';
+        this.keyPointErrors[tour.id] = this.backendDetail(error) || 'The key point could not be deleted.';
       }
     });
   }
@@ -424,12 +501,12 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.reviewErrors[tour.id] = '';
 
     if (this.hasMyReview(tour.id)) {
-      this.reviewErrors[tour.id] = 'Vec si ostavila recenziju za ovu turu.';
+      this.reviewErrors[tour.id] = 'You have already reviewed this tour.';
       return;
     }
 
     if (!this.reviewsLoaded[tour.id]) {
-      this.reviewErrors[tour.id] = 'Sacekaj trenutak da ucitamo postojece recenzije za ovu turu.';
+      this.reviewErrors[tour.id] = 'Wait while existing reviews are loaded.';
       this.loadReviews(tour.id);
       return;
     }
@@ -438,22 +515,22 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     const visitedAt = new Date(form.visitedAt);
 
     if (!form.comment.trim()) {
-      this.reviewErrors[tour.id] = 'Unesi komentar pre slanja recenzije.';
+      this.reviewErrors[tour.id] = 'Enter a comment before submitting the review.';
       return;
     }
 
     if (Number.isNaN(visitedAt.getTime())) {
-      this.reviewErrors[tour.id] = 'Izaberi ispravan datum posete.';
+      this.reviewErrors[tour.id] = 'Choose a valid visit date.';
       return;
     }
 
     if (visitedAt.getTime() > Date.now()) {
-      this.reviewErrors[tour.id] = 'Datum posete ne moze biti u buducnosti.';
+      this.reviewErrors[tour.id] = 'Visit date cannot be in the future.';
       return;
     }
 
     this.reviewSubmitting[tour.id] = true;
-    this.reviewMessages[tour.id] = 'Recenzija je dodata.';
+    this.reviewMessages[tour.id] = 'Review added.';
 
     const optimisticId = -Date.now();
     const optimisticReview: TourReview = {
@@ -488,7 +565,8 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
           .map(existing => existing.id === optimisticId ? review : existing);
         this.reviewsLoaded[tour.id] = true;
         delete this.pendingReviewIds[tour.id];
-        this.reviewMessages[tour.id] = 'Recenzija je uspesno sacuvana.';
+        this.reviewMessages[tour.id] = 'Review saved successfully.';
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
         this.reviewSubmitting[tour.id] = false;
@@ -513,6 +591,34 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
 
   stars(rating: number): string {
     return `${rating}/5`;
+  }
+
+  publishPrice(tour: Tour): number {
+    if (this.publishPriceByTourId[tour.id] == null) {
+      this.publishPriceByTourId[tour.id] = Math.max(1, Number(tour.price) || 100);
+    }
+
+    return this.publishPriceByTourId[tour.id];
+  }
+
+  draftRouteLengthKm(): number {
+    return this.calculateRouteLengthKm(this.newTour.keyPoints);
+  }
+
+  routeLength(tour: Tour): number {
+    return Number(tour.routeLengthKm ?? this.calculateRouteLengthKm(tour.keyPoints ?? []));
+  }
+
+  canPublish(tour: Tour): boolean {
+    return !!tour.name?.trim()
+      && !!tour.description?.trim()
+      && (tour.tags?.length ?? 0) > 0
+      && (tour.keyPoints?.length ?? 0) >= 2
+      && (tour.travelTimes?.length ?? 0) > 0;
+  }
+
+  travelMinutes(tour: Tour, transportType: 'Walking' | 'Bicycle' | 'Car'): number {
+    return tour.travelTimes?.find(time => time.transportType === transportType)?.minutes ?? 0;
   }
 
   addImageUrl(tourId: number): void {
@@ -552,7 +658,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     }, text => {
       form.images = [...form.images, ...this.splitLinesOrCommas(text)];
     }, () => {
-      this.reviewErrors[tourId] = 'Ne mogu da obradim ovu sliku. Probaj drugu sliku ili dodaj URL.';
+      this.reviewErrors[tourId] = 'The image could not be processed. Try another image or add a URL.';
     });
   }
 
@@ -596,15 +702,10 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.executionMessages[tour.id] = '';
     this.executionErrors[tour.id] = '';
 
-    if (!this.isPurchased(tour.id)) {
-      this.executionErrors[tour.id] = 'Moras kupiti turu pre pokretanja.';
-      return;
-    }
-
     this.positionSimulatorService.getMyPosition().subscribe({
       next: position => {
         if (!position) {
-          this.executionErrors[tour.id] = 'Prvo postavi lokaciju u Position simulatoru.';
+          this.executionErrors[tour.id] = 'Set your location in the position simulator first.';
           return;
         }
 
@@ -614,17 +715,20 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
         }).subscribe({
           next: execution => {
             this.activeExecutionsByTourId[tour.id] = execution;
-            this.executionMessages[tour.id] = 'Tura je pokrenuta.';
+            this.executionMessages[tour.id] = 'Tour started.';
             this.startExecutionPolling(tour.id);
             this.checkKeyPoints(tour.id);
+            this.cdr.detectChanges();
           },
           error: (error: HttpErrorResponse) => {
-            this.executionErrors[tour.id] = this.backendDetail(error) || 'Tura nije pokrenuta.';
+            this.executionErrors[tour.id] = this.backendDetail(error) || 'The tour could not be started.';
+            this.cdr.detectChanges();
           }
         });
       },
       error: () => {
-        this.executionErrors[tour.id] = 'Ne mogu da procitam lokaciju iz Position simulatora.';
+        this.executionErrors[tour.id] = 'The location could not be read from the position simulator.';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -642,7 +746,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       next: position => {
         if (!position) {
           this.executionChecking[tourId] = false;
-          this.executionErrors[tourId] = 'Prvo postavi lokaciju u Position simulatoru.';
+          this.executionErrors[tourId] = 'Set your location in the position simulator first.';
           return;
         }
 
@@ -654,22 +758,25 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
             this.executionChecking[tourId] = false;
             this.activeExecutionsByTourId[tourId] = result.execution;
             this.executionMessages[tourId] = result.reached
-              ? `Dostignuta je kljucna tacka ${result.keyPointOrdinalNo}.`
-              : 'Lokacija je proverena. Nema nove kljucne tacke u blizini.';
+              ? `Key point ${result.keyPointOrdinalNo} reached.`
+              : 'Location checked. There are no new key points nearby.';
 
             if (result.execution.status !== 'Active') {
               this.stopExecutionPolling(tourId);
             }
+            this.cdr.detectChanges();
           },
           error: (error: HttpErrorResponse) => {
             this.executionChecking[tourId] = false;
-            this.executionErrors[tourId] = this.backendDetail(error) || 'Provera kljucnih tacaka nije uspela.';
+            this.executionErrors[tourId] = this.backendDetail(error) || 'Key point checking failed.';
+            this.cdr.detectChanges();
           }
         });
       },
       error: () => {
         this.executionChecking[tourId] = false;
-        this.executionErrors[tourId] = 'Ne mogu da procitam lokaciju iz Position simulatora.';
+        this.executionErrors[tourId] = 'The location could not be read from the position simulator.';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -684,11 +791,12 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.tourService.completeTourExecution(execution.id).subscribe({
       next: updated => {
         this.activeExecutionsByTourId[tourId] = updated;
-        this.executionMessages[tourId] = 'Tura je zavrsena.';
+        this.executionMessages[tourId] = 'Tour completed.';
         this.stopExecutionPolling(tourId);
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
-        this.executionErrors[tourId] = this.backendDetail(error) || 'Tura nije zavrsena.';
+        this.executionErrors[tourId] = this.backendDetail(error) || 'The tour could not be completed.';
       }
     });
   }
@@ -703,11 +811,12 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     this.tourService.abandonTourExecution(execution.id).subscribe({
       next: updated => {
         this.activeExecutionsByTourId[tourId] = updated;
-        this.executionMessages[tourId] = 'Tura je napustena.';
+        this.executionMessages[tourId] = 'Tour abandoned.';
         this.stopExecutionPolling(tourId);
+        this.loadTours(false);
       },
       error: (error: HttpErrorResponse) => {
-        this.executionErrors[tourId] = this.backendDetail(error) || 'Tura nije napustena.';
+        this.executionErrors[tourId] = this.backendDetail(error) || 'The tour could not be abandoned.';
       }
     });
   }
@@ -716,24 +825,71 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     return this.activeExecutionsByTourId[tourId];
   }
 
+  openImage(image: string): void {
+    this.selectedImage = image;
+  }
+
+  closeImage(): void {
+    this.selectedImage = null;
+  }
+
+  openReviews(tour: Tour): void {
+    this.selectedReviewTour = tour;
+    this.loadReviews(tour.id);
+  }
+
+  closeReviews(): void {
+    this.selectedReviewTour = null;
+  }
+
+  @HostListener('document:keydown.escape')
+  closeOverlaysOnEscape(): void {
+    this.closeImage();
+    this.closeReviews();
+  }
+
   private loadGuideTours(): void {
     this.isLoading = true;
+    this.cdr.detectChanges();
 
     this.tourService.getMyTours().subscribe({
       next: response => {
         this.guideTours = response.results;
-        this.guideTours.forEach(tour => {
-          if (!this.publishPriceByTourId[tour.id]) {
-            this.publishPriceByTourId[tour.id] = tour.price > 0 ? tour.price : 1000;
-          }
-        });
         this.isLoading = false;
+        this.loadGuideReviews();
         this.scheduleMapRender();
+        this.cdr.detectChanges();
       },
       error: () => {
-        this.errorMessage = 'Ne mogu da ucitam tvoje ture. Proveri da li je backend podignut.';
+        this.errorMessage = 'Your tours could not be loaded. Check that the backend is running.';
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
+    });
+  }
+
+  private loadGuideReviews(): void {
+    if (this.guideTours.length === 0) {
+      return;
+    }
+
+    this.guideTours.forEach(tour => {
+      this.reviewsByTourId[tour.id] = [];
+      this.reviewsLoaded[tour.id] = false;
+    });
+
+    const reviewRequests = this.guideTours.map(tour =>
+      this.tourService.getReviews(tour.id, 1, 100).pipe(
+        catchError(() => of({ results: [], totalCount: 0 }))
+      )
+    );
+
+    forkJoin(reviewRequests).subscribe(reviewResults => {
+      this.guideTours.forEach((tour, index) => {
+        this.reviewsByTourId[tour.id] = reviewResults[index]?.results ?? [];
+        this.reviewsLoaded[tour.id] = true;
+      });
+      this.cdr.detectChanges();
     });
   }
 
@@ -783,6 +939,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
         this.reviewsByTourId[tour.id] = reviewResults[index]?.results ?? [];
         this.reviewsLoaded[tour.id] = true;
       });
+      this.cdr.detectChanges();
     });
   }
 
@@ -793,10 +950,12 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       next: response => {
         this.reviewsByTourId[tourId] = response.results;
         this.reviewsLoaded[tourId] = true;
+        this.cdr.detectChanges();
       },
       error: () => {
-        this.reviewErrors[tourId] = 'Ne mogu da ucitam recenzije za ovu turu.';
+        this.reviewErrors[tourId] = 'Reviews for this tour could not be loaded.';
         this.reviewsLoaded[tourId] = true;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -837,21 +996,10 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
         `tour-${tour.id}`,
         `tour-map-${tour.id}`,
         visiblePoints,
-        (latitude, longitude) => {
-          if (tour.status !== 'Draft') {
-            this.keyPointMessages[tour.id] = 'Objavljena tura je zakljucana za izmene.';
-            return;
+        () => {
+          if (tour.status === 'Draft') {
+            this.router.navigate(['/tours', tour.id, 'edit']);
           }
-
-          if (!this.activeKeyPointEditors[tour.id]) {
-            this.startAddKeyPoint(tour);
-          }
-
-          const activeEditor = this.activeKeyPointEditors[tour.id];
-          activeEditor.point.latitude = Number(latitude.toFixed(6));
-          activeEditor.point.longitude = Number(longitude.toFixed(6));
-          this.keyPointMessages[tour.id] = 'Pozicija je izabrana. Popuni podatke i sacuvaj tacku.';
-          this.renderAllMaps();
         },
         undefined,
         activeOrdinalNo
@@ -922,7 +1070,7 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       const marker = this.leaflet.marker([point.latitude, point.longitude], {
         draggable: isActivePoint
       })
-        .bindPopup(`<strong>${point.ordinalNo ?? index + 1}. ${this.escapeHtml(point.name || 'Nova tacka')}</strong>`);
+        .bindPopup(`<strong>${point.ordinalNo ?? index + 1}. ${this.escapeHtml(point.name || 'New point')}</strong>`);
 
       if (isActivePoint) {
         marker.bindTooltip('Drag or click map to move', { permanent: true, direction: 'top' });
@@ -967,14 +1115,14 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     const detail = this.backendDetail(error);
 
     if (detail.includes('already reviewed')) {
-      return 'Vec si ostavila recenziju za ovu turu. Ucitavam je sada.';
+      return 'You have already reviewed this tour. Loading your review now.';
     }
 
     if (detail) {
       return detail;
     }
 
-    return 'Recenzija nije dodata. Proveri komentar, ocenu i datum posete.';
+    return 'The review could not be added. Check the comment, rating, and visit date.';
   }
 
   private isAlreadyReviewedError(error: HttpErrorResponse): boolean {
@@ -987,7 +1135,9 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
       description: '',
       difficulty: 'Easy',
       tagsText: '',
-      walkingMinutes: 60,
+      walkingMinutes: 0,
+      bicycleMinutes: 0,
+      carMinutes: 0,
       keyPoints: []
     };
     this.selectedDraftPointIndex = 0;
@@ -998,15 +1148,10 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     return {
       rating: 5,
       comment: '',
-      visitedAt: this.toDateTimeLocalValue(new Date()),
+      visitedAt: new Date().toISOString().slice(0, 16),
       imageUrlInput: '',
       images: []
     };
-  }
-
-  private toDateTimeLocalValue(date: Date): string {
-    const timezoneOffsetMs = date.getTimezoneOffset() * 60000;
-    return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
   }
 
   private emptyKeyPoint(ordinalNo: number): KeyPoint {
@@ -1024,9 +1169,9 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   private defaultDraftKeyPoint(ordinalNo: number, latitude: number, longitude: number): KeyPoint {
     return {
       ordinalNo,
-      name: `Kljucna tacka ${ordinalNo}`,
-      description: `Opis kljucne tacke ${ordinalNo}`,
-      secretText: `Tajna ${ordinalNo}`,
+      name: `Key point ${ordinalNo}`,
+      description: `Key point ${ordinalNo} description`,
+      secretText: `Secret ${ordinalNo}`,
       imageUrl: 'https://placehold.co/800x500?text=Key+point',
       latitude: Number(latitude.toFixed(6)),
       longitude: Number(longitude.toFixed(6))
@@ -1169,10 +1314,6 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
     return this.purchasedTourIds.has(tourId);
   }
 
-  maxDateTimeLocal(): string {
-    return this.toDateTimeLocalValue(new Date());
-  }
-
   private hasValidCoordinates(point: KeyPoint): boolean {
     return Number.isFinite(Number(point.latitude)) && Number.isFinite(Number(point.longitude));
   }
@@ -1203,11 +1344,62 @@ export class Tours implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private backendDetail(error: HttpErrorResponse): string {
-    return typeof error.error?.detail === 'string' ? error.error.detail : '';
+    return '';
   }
 
   private backendTitle(error: HttpErrorResponse): string {
-    return typeof error.error?.title === 'string' ? error.error.title : '';
+    return '';
+  }
+
+  private newTourTravelTimes() {
+    return [
+      { transportType: 'Walking' as const, minutes: Number(this.newTour.walkingMinutes) },
+      { transportType: 'Bicycle' as const, minutes: Number(this.newTour.bicycleMinutes) },
+      { transportType: 'Car' as const, minutes: Number(this.newTour.carMinutes) }
+    ].filter(time => Number.isFinite(time.minutes) && time.minutes > 0);
+  }
+
+  private editorTravelTimes(editor: TourDetailsEditor) {
+    return [
+      { transportType: 'Walking' as const, minutes: Number(editor.walkingMinutes) },
+      { transportType: 'Bicycle' as const, minutes: Number(editor.bicycleMinutes) },
+      { transportType: 'Car' as const, minutes: Number(editor.carMinutes) }
+    ].filter(time => Number.isFinite(time.minutes) && time.minutes > 0);
+  }
+
+  private calculateRouteLengthKm(points: KeyPoint[]): number {
+    const ordered = points
+      .filter(point => this.hasValidCoordinates(point))
+      .sort((a, b) => (a.ordinalNo ?? 0) - (b.ordinalNo ?? 0));
+
+    if (ordered.length < 2) {
+      return 0;
+    }
+
+    let total = 0;
+
+    for (let index = 1; index < ordered.length; index++) {
+      total += this.haversineDistanceKm(ordered[index - 1], ordered[index]);
+    }
+
+    return Math.round(total * 100) / 100;
+  }
+
+  private haversineDistanceKm(start: KeyPoint, end: KeyPoint): number {
+    const earthRadiusKm = 6371;
+    const startLat = this.degreesToRadians(start.latitude);
+    const endLat = this.degreesToRadians(end.latitude);
+    const deltaLat = this.degreesToRadians(end.latitude - start.latitude);
+    const deltaLon = this.degreesToRadians(end.longitude - start.longitude);
+    const halfChord = Math.sin(deltaLat / 2) ** 2
+      + Math.cos(startLat) * Math.cos(endLat) * Math.sin(deltaLon / 2) ** 2;
+    const angularDistance = 2 * Math.atan2(Math.sqrt(halfChord), Math.sqrt(1 - halfChord));
+
+    return earthRadiusKm * angularDistance;
+  }
+
+  private degreesToRadians(value: number): number {
+    return value * Math.PI / 180;
   }
 
   private escapeHtml(value: string): string {

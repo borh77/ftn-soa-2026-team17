@@ -74,6 +74,35 @@
           </div>
 
           <div>
+            <div
+              class="blog-image-drop-zone"
+              [class.active]="imageDropActive"
+              (dragover)="onBlogImageDragOver($event)"
+              (dragleave)="onBlogImageDragLeave($event)"
+              (drop)="onBlogImageDrop($event)"
+            >
+              <div>
+                <strong>Drag blog images here</strong>
+                <span>Drop image files or image URLs.</span>
+              </div>
+            </div>
+
+            <div class="upload-row">
+              <label class="file-upload-button">
+                Upload images
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  (change)="onBlogImageSelected($event)"
+                />
+              </label>
+
+              @if (blogImageValues().length > 0) {
+                <button class="ghost-button" type="button" (click)="clearBlogImages()">Clear images</button>
+              }
+            </div>
+
             <label>
               Image URLs
               <textarea
@@ -84,6 +113,17 @@
               ></textarea>
             </label>
             <p class="muted small-copy">Optional. Separate image URLs with a comma or a new line.</p>
+
+            @if (blogImageValues().length > 0) {
+              <div class="create-image-preview-grid">
+                @for (image of blogImageValues(); track $index) {
+                  <div>
+                    <img [src]="image" alt="Selected blog image" />
+                    <button type="button" (click)="removeBlogImage($index)">Remove</button>
+                  </div>
+                }
+              </div>
+            }
           </div>
         </div>
 
@@ -109,7 +149,7 @@
       <div class="recommendation-list">
         @for (id of recommendations; track id) {
           <button class="ghost-button" type="button" (click)="followAuthor(id)">
-            Follow user {{ id }}
+            Follow @{{ usernameFor(id) }}
           </button>
         }
       </div>
@@ -127,7 +167,7 @@
           <div class="blog-head">
             <div>
               <h2>{{ blog.title }}</h2>
-              <p class="muted">Author ID: {{ blog.authorId }} - {{ blog.creationDate | date:'mediumDate' }}</p>
+              <p class="muted">@{{ usernameFor(blog.authorId) }} - {{ blog.creationDate | date:'mediumDate' }}</p>
             </div>
 
             <div class="blog-actions">
@@ -173,7 +213,14 @@
           @if (blog.images.length > 0) {
             <div class="image-grid">
               @for (image of blog.images; track $index) {
-                <img [src]="image" [alt]="blogImageAlt($index, blog.title)" />
+                <button
+                  class="blog-image-button"
+                  type="button"
+                  (click)="openImage(image)"
+                  aria-label="View full image"
+                >
+                  <img [src]="image" [alt]="blogImageAlt($index, blog.title)" />
+                </button>
               }
             </div>
           }
@@ -188,22 +235,20 @@
               @for (comment of blog.comments; track comment.id) {
                 <div class="comment-card">
                   <div class="comment-head">
-                    <strong>User {{ comment.authorId }}</strong>
+                    <strong>@{{ usernameFor(comment.authorId) }}</strong>
 
-                    @if (isMyComment(comment)) {
+                    @if (isMyComment(comment.authorId) && editingCommentId !== comment.id) {
                       <div class="comment-actions">
-                        @if (!editingCommentByCommentId[comment.id]) {
-                          <button class="ghost-button small-button" type="button" (click)="startEditComment(comment)">
-                            Edit
-                          </button>
-                        }
+                        <button class="ghost-button small-button" type="button" (click)="startCommentEdit(comment)">
+                          Edit
+                        </button>
                         <button
-                          class="danger-button small-button"
+                          class="delete-button small-button"
                           type="button"
-                          (click)="deleteComment(blog, comment)"
-                          [disabled]="commentActionLoadingByCommentId[comment.id]"
+                          (click)="deleteComment(blog, comment.id)"
+                          [disabled]="commentActionLoadingById[comment.id]"
                         >
-                          @if (commentActionLoadingByCommentId[comment.id]) {
+                          @if (commentActionLoadingById[comment.id]) {
                             Deleting...
                           } @else {
                             Delete
@@ -213,26 +258,26 @@
                     }
                   </div>
 
-                  @if (editingCommentByCommentId[comment.id]) {
-                    <form class="comment-edit-form" (ngSubmit)="updateComment(blog, comment)">
+                  @if (editingCommentId === comment.id) {
+                    <form class="comment-edit-form" (ngSubmit)="updateComment(blog, comment.id)">
                       <textarea
                         rows="3"
                         [name]="'edit-comment-' + comment.id"
-                        [(ngModel)]="editCommentTextByCommentId[comment.id]"
+                        [(ngModel)]="editCommentText"
                       ></textarea>
-                      <div class="form-actions">
+                      <div class="comment-actions">
                         <button
                           class="primary-button small-button"
                           type="submit"
-                          [disabled]="commentActionLoadingByCommentId[comment.id]"
+                          [disabled]="commentActionLoadingById[comment.id]"
                         >
-                          @if (commentActionLoadingByCommentId[comment.id]) {
+                          @if (commentActionLoadingById[comment.id]) {
                             Saving...
                           } @else {
                             Save
                           }
                         </button>
-                        <button class="ghost-button small-button" type="button" (click)="cancelEditComment(comment.id)">
+                        <button class="ghost-button small-button" type="button" (click)="cancelCommentEdit()">
                           Cancel
                         </button>
                       </div>
@@ -242,7 +287,7 @@
                   }
 
                   <small>
-                    {{ comment.createdAt | date:'medium' }}
+                    Created {{ comment.createdAt | date:'medium' }}
                     @if (comment.lastModifiedAt) {
                       - edited {{ comment.lastModifiedAt | date:'medium' }}
                     }
@@ -288,5 +333,12 @@
         <p class="muted">No blogs yet.</p>
       }
     </section>
+  }
+
+  @if (selectedImage) {
+    <div class="image-lightbox" role="dialog" aria-modal="true" aria-label="Full-size blog image" (click)="closeImage()">
+      <button class="lightbox-close" type="button" (click)="closeImage()" aria-label="Close image">Close</button>
+      <img [src]="selectedImage" alt="Full-size blog image" (click)="$event.stopPropagation()" />
+    </div>
   }
 </section>

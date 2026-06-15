@@ -18,7 +18,12 @@
       </p>
     </div>
 
-    <button class="ghost-button" type="button" (click)="loadTours()">Refresh</button>
+    <div class="header-actions">
+      @if (role === 'GUIDE') {
+        <a class="primary-button" routerLink="/tours/new">Create tour</a>
+      }
+      <button class="ghost-button" type="button" (click)="loadTours()">Refresh</button>
+    </div>
   </div>
 
   @if (message) {
@@ -34,8 +39,9 @@
   }
 
   @if (role === 'GUIDE') {
-    <section class="workspace">
-      <form class="tour-form" (ngSubmit)="createTour()">
+    <section class="workspace" [class.single-column]="!showCreateTourForm">
+      @if (showCreateTourForm) {
+        <form class="tour-form" (ngSubmit)="createTour()">
         <div class="section-title">
           <h2>Create tour</h2>
           <span>Draft first, publish after review</span>
@@ -72,16 +78,38 @@
           </label>
         </div>
 
-        <label>
-          Walking time (minutes)
-          <input
-            type="number"
-            min="1"
-            name="walkingMinutes"
-            [(ngModel)]="newTour.walkingMinutes"
-            required
-          />
-        </label>
+        <div class="form-grid travel-time-grid">
+          <label>
+            Walking time
+            <input
+              type="number"
+              min="0"
+              name="walkingMinutes"
+              [(ngModel)]="newTour.walkingMinutes"
+            />
+          </label>
+
+          <label>
+            Bicycle time
+            <input
+              type="number"
+              min="0"
+              name="bicycleMinutes"
+              [(ngModel)]="newTour.bicycleMinutes"
+            />
+          </label>
+
+          <label>
+            Car time
+            <input
+              type="number"
+              min="0"
+              name="carMinutes"
+              [(ngModel)]="newTour.carMinutes"
+            />
+          </label>
+        </div>
+        <p class="form-help">Travel time is optional for a draft and required before publishing.</p>
 
         <div class="section-title compact">
           <h3>Key points</h3>
@@ -94,13 +122,13 @@
         <div class="map-editor">
           <div class="map-copy">
             <strong>Draw the route on the map</strong>
-            <span>Click the map to add a point. Drag the selected marker to move it.</span>
+            <span>{{ draftRouteLengthKm() }} km - click the map to add a point.</span>
           </div>
           <div id="draft-keypoint-map" class="route-map"></div>
         </div>
 
         @if (newTour.keyPoints.length < 2) {
-          <p class="inline-notice error">Dodaj najmanje dve kljucne tacke klikom na mapu.</p>
+          <p class="inline-notice muted-note">You can save the draft now, but publishing requires at least two key points.</p>
         }
 
         @for (point of newTour.keyPoints; track $index) {
@@ -165,8 +193,9 @@
           </div>
         }
 
-        <button class="primary-button" type="submit">Save draft</button>
-      </form>
+          <button class="primary-button" type="submit">Save draft</button>
+        </form>
+      }
 
       <section class="tour-list">
         <div class="section-title">
@@ -184,23 +213,96 @@
               <span class="status">{{ tour.status }}</span>
             </div>
 
+            @if (tour.status === 'Draft' && tourDetailsEditors[tour.id]; as editor) {
+              <form class="tour-details-editor" (ngSubmit)="saveTourDetails(tour)">
+                <div class="section-title compact">
+                  <h3>Edit basic details</h3>
+                  <span>Draft only</span>
+                </div>
+
+                <div class="form-grid">
+                  <label>
+                    Name
+                    <input type="text" [name]="'edit-tour-name-' + tour.id" [(ngModel)]="editor.name" />
+                  </label>
+                  <label>
+                    Difficulty
+                    <select [name]="'edit-tour-difficulty-' + tour.id" [(ngModel)]="editor.difficulty">
+                      <option value="Easy">Easy</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label>
+                  Description
+                  <textarea rows="3" [name]="'edit-tour-description-' + tour.id" [(ngModel)]="editor.description"></textarea>
+                </label>
+
+                <label>
+                  Tags
+                  <input type="text" [name]="'edit-tour-tags-' + tour.id" [(ngModel)]="editor.tagsText" />
+                </label>
+
+                <div class="form-grid travel-time-grid">
+                  <label>
+                    Walking minutes
+                    <input type="number" min="0" [name]="'edit-walking-' + tour.id" [(ngModel)]="editor.walkingMinutes" />
+                  </label>
+                  <label>
+                    Bicycle minutes
+                    <input type="number" min="0" [name]="'edit-bicycle-' + tour.id" [(ngModel)]="editor.bicycleMinutes" />
+                  </label>
+                  <label>
+                    Car minutes
+                    <input type="number" min="0" [name]="'edit-car-' + tour.id" [(ngModel)]="editor.carMinutes" />
+                  </label>
+                </div>
+
+                <div class="card-actions">
+                  <button class="primary-button" type="submit" [disabled]="tourActionLoadingById[tour.id]">
+                    @if (tourActionLoadingById[tour.id]) {
+                      Saving...
+                    } @else {
+                      Save details
+                    }
+                  </button>
+                  <button class="ghost-button" type="button" (click)="cancelTourEdit(tour.id)">Cancel</button>
+                </div>
+              </form>
+            }
+
             <div class="meta-row">
               <span>{{ tour.difficulty }}</span>
               <span>{{ tour.keyPoints.length }} key points</span>
-              @if (tour.routeLengthKm !== undefined) {
-                <span>{{ tour.routeLengthKm }} km</span>
-              }
+              <span>{{ routeLength(tour) }} km</span>
               <span>{{ tour.price || 0 }} RSD</span>
             </div>
 
-            @if (tour.publishedAt || tour.archivedAt) {
-              <div class="meta-row">
-                @if (tour.publishedAt) {
-                  <span>Published {{ tour.publishedAt | date: 'mediumDate' }}</span>
+            <div class="meta-row">
+              @if (tour.publishedAt) {
+                <span>Published {{ tour.publishedAt | date: 'medium' }}</span>
+              }
+              @if (tour.archivedAt) {
+                <span>Archived {{ tour.archivedAt | date: 'medium' }}</span>
+              }
+            </div>
+
+            @if (tour.travelTimes.length) {
+              <div class="tag-row travel-times">
+                @for (time of tour.travelTimes; track time.transportType) {
+                  <span>{{ time.transportType }} {{ time.minutes }} min</span>
                 }
-                @if (tour.archivedAt) {
-                  <span>Archived {{ tour.archivedAt | date: 'mediumDate' }}</span>
-                }
+              </div>
+            }
+
+            @if (tour.status === 'Draft') {
+              <div class="publish-readiness" [class.ready]="canPublish(tour)">
+                <strong>{{ canPublish(tour) ? 'Ready to publish' : 'Draft requirements' }}</strong>
+                <span [class.complete]="tour.tags.length > 0">Tags</span>
+                <span [class.complete]="tour.keyPoints.length >= 2">2 key points</span>
+                <span [class.complete]="tour.travelTimes.length > 0">Travel time</span>
               </div>
             }
 
@@ -222,7 +324,7 @@
               <div class="section-title compact">
                 <h3>Key points</h3>
                 @if (tour.status === 'Draft') {
-                  <button class="ghost-button" type="button" (click)="startAddKeyPoint(tour)">Add on map</button>
+                  <a class="ghost-button" [routerLink]="['/tours', tour.id, 'edit']">Edit route</a>
                 } @else {
                   <span>Published route is locked</span>
                 }
@@ -307,19 +409,15 @@
                 @for (point of tour.keyPoints; track point.ordinalNo) {
                   <div class="keypoint-row">
                     @if (point.imageUrl) {
-                      <img [src]="point.imageUrl" alt="Key point image" />
+                      <button class="image-view-button keypoint-image-button" type="button" (click)="openImage(point.imageUrl)" aria-label="View key point image">
+                        <img [src]="point.imageUrl" alt="Key point image" />
+                      </button>
                     }
                     <div>
                       <strong>{{ point.ordinalNo }}. {{ point.name }}</strong>
                       <p>{{ point.description }}</p>
                       <small>{{ point.latitude }}, {{ point.longitude }}</small>
                     </div>
-                    @if (tour.status === 'Draft') {
-                      <div class="keypoint-row-actions">
-                        <button class="ghost-button small" type="button" (click)="startEditKeyPoint(tour, point)">Edit</button>
-                        <button class="icon-button small" type="button" (click)="deleteKeyPoint(tour, point)">Delete</button>
-                      </div>
-                    }
                   </div>
                 }
               </div>
@@ -327,79 +425,50 @@
 
             <div class="card-actions">
               @if (tour.status === 'Draft') {
-                <label class="publish-price-field">
-                  Publish price
+                @if (!tourDetailsEditors[tour.id]) {
+                  <a class="ghost-button" [routerLink]="['/tours', tour.id, 'edit']">Edit tour</a>
+                }
+                <label class="publish-price">
+                  Price
                   <input
                     type="number"
                     min="1"
-                    step="1"
                     [name]="'publish-price-' + tour.id"
                     [(ngModel)]="publishPriceByTourId[tour.id]"
+                    [ngModelOptions]="{ standalone: true }"
+                    [placeholder]="publishPrice(tour).toString()"
                   />
                 </label>
+                <button class="primary-button" type="button" (click)="publishTour(tour)" [disabled]="!canPublish(tour) || lifecycleLoadingByTourId[tour.id]">
+                  {{ lifecycleLoadingByTourId[tour.id] ? 'Publishing...' : 'Publish' }}
+                </button>
                 <button
-                  class="primary-button"
+                  class="icon-button"
                   type="button"
-                  (click)="publishTour(tour)"
-                  [disabled]="lifecycleLoadingByTourId[tour.id]"
+                  (click)="deleteTour(tour)"
+                  [disabled]="tourActionLoadingById[tour.id]"
                 >
-                  @if (lifecycleLoadingByTourId[tour.id]) {
-                    Publishing...
+                  @if (tourActionLoadingById[tour.id]) {
+                    Deleting...
                   } @else {
-                    Publish
+                    Delete draft
                   }
                 </button>
               }
               @if (tour.status === 'Published') {
-                <button
-                  class="icon-button"
-                  type="button"
-                  (click)="archiveTour(tour)"
-                  [disabled]="lifecycleLoadingByTourId[tour.id]"
-                >
-                  @if (lifecycleLoadingByTourId[tour.id]) {
-                    Archiving...
-                  } @else {
-                    Archive
-                  }
+                <button class="icon-button" type="button" (click)="archiveTour(tour)" [disabled]="lifecycleLoadingByTourId[tour.id]">
+                  {{ lifecycleLoadingByTourId[tour.id] ? 'Archiving...' : 'Archive' }}
                 </button>
               }
               @if (tour.status === 'Archived') {
-                <button
-                  class="primary-button"
-                  type="button"
-                  (click)="reactivateTour(tour)"
-                  [disabled]="lifecycleLoadingByTourId[tour.id]"
-                >
-                  @if (lifecycleLoadingByTourId[tour.id]) {
-                    Reactivating...
-                  } @else {
-                    Reactivate
-                  }
+                <button class="primary-button" type="button" (click)="reactivateTour(tour)" [disabled]="lifecycleLoadingByTourId[tour.id]">
+                  {{ lifecycleLoadingByTourId[tour.id] ? 'Reactivating...' : 'Reactivate' }}
                 </button>
               }
-              <button class="ghost-button" type="button" (click)="toggleReviews(tour)">Reviews</button>
+              <button class="ghost-button" type="button" (click)="openReviews(tour)">
+                Reviews ({{ reviewsByTourId[tour.id]?.length || 0 }})
+              </button>
             </div>
-
-            @if (reviewsByTourId[tour.id]) {
-              <div class="reviews">
-                @for (review of reviewsByTourId[tour.id]; track review.id) {
-                  <div class="review">
-                    <strong>{{ review.touristUsername }}</strong>
-              <span>
-                {{ stars(review.rating) }}
-                @if (review.id < 0) {
-                  - saving
-                }
-              </span>
-              <p>{{ review.comment }}</p>
-              <small>Visited {{ review.visitedAt | date: 'mediumDate' }}</small>
-            </div>
-          } @empty {
-            <p class="muted">No reviews yet.</p>
-                }
-              </div>
-            }
           </article>
         } @empty {
           <p class="muted">You have not created a tour yet.</p>
@@ -421,11 +490,17 @@
           <div class="meta-row">
             <span>{{ tour.difficulty }}</span>
             <span>{{ tour.keyPoints.length }} stops</span>
-            @if (tour.routeLengthKm !== undefined) {
-              <span>{{ tour.routeLengthKm }} km</span>
-            }
+            <span>{{ routeLength(tour) }} km</span>
             <span>{{ tour.price || 0 }} RSD</span>
           </div>
+
+          @if (tour.travelTimes.length) {
+            <div class="tag-row travel-times">
+              @for (time of tour.travelTimes; track time.transportType) {
+                <span>{{ time.transportType }} {{ time.minutes }} min</span>
+              }
+            </div>
+          }
 
           <div class="tag-row">
             @for (tag of tour.tags; track tag) {
@@ -436,6 +511,11 @@
           <div class="keypoints-preview">
             @for (point of visibleKeyPoints(tour); track point.ordinalNo) {
               <div>
+                @if (point.imageUrl) {
+                  <button class="image-view-button preview-point-image" type="button" (click)="openImage(point.imageUrl)" aria-label="View key point image">
+                    <img [src]="point.imageUrl" alt="Key point image" />
+                  </button>
+                }
                 <strong>{{ point.ordinalNo }}. {{ point.name }}</strong>
                 <p>{{ point.description }}</p>
               </div>
@@ -452,7 +532,7 @@
             <div class="purchase-panel">
               @if (isPurchased(tour.id)) {
                 <div class="purchase-status success">
-                  Purchased — this tour is unlocked.
+                  Purchased - this tour is unlocked.
                 </div>
               } @else if (isInCart(tour.id)) {
                 <a class="primary-button purchase-button" routerLink="/cart">
@@ -510,17 +590,7 @@
                   }
                 </div>
               } @else {
-                <button
-                  class="primary-button"
-                  type="button"
-                  (click)="startTour(tour)"
-                  [disabled]="!isPurchased(tour.id)"
-                >
-                  Start tour
-                </button>
-                @if (!isPurchased(tour.id)) {
-                  <p class="inline-notice error">Buy this tour before starting it.</p>
-                }
+                <button class="primary-button" type="button" (click)="startTour(tour)">Start tour</button>
               }
 
               @if (executionMessages[tour.id]) {
@@ -555,11 +625,16 @@
                     </span>
                   </div>
                   <p>{{ review.comment }}</p>
-                  <small>Visited {{ review.visitedAt | date: 'mediumDate' }}</small>
+                  <small>
+                    Visited {{ review.visitedAt | date: 'mediumDate' }} -
+                    reviewed {{ review.createdAt | date: 'mediumDate' }}
+                  </small>
                   @if (review.images.length) {
                     <div class="review-images">
                       @for (image of review.images; track image) {
-                        <img [src]="image" alt="Review image" />
+                        <button class="image-view-button" type="button" (click)="openImage(image)" aria-label="View review image">
+                          <img [src]="image" alt="Review image" />
+                        </button>
                       }
                     </div>
                   }
@@ -623,7 +698,6 @@
                       type="datetime-local"
                       [name]="'visitedAt-' + tour.id"
                       [(ngModel)]="getReviewForm(tour.id).visitedAt"
-                      [max]="maxDateTimeLocal()"
                     />
                   </label>
                 </div>
@@ -691,5 +765,57 @@
         <p class="muted">No published tours yet.</p>
       }
     </section>
+  }
+
+  @if (selectedReviewTour; as reviewTour) {
+    <div class="review-modal-backdrop" role="dialog" aria-modal="true" aria-label="Tour reviews" (click)="closeReviews()">
+      <section class="review-modal" (click)="$event.stopPropagation()">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Traveller feedback</p>
+            <h2>{{ reviewTour.name }}</h2>
+          </div>
+          <button class="ghost-button" type="button" (click)="closeReviews()">Close</button>
+        </div>
+
+        @if (!reviewsLoaded[reviewTour.id]) {
+          <p class="muted">Loading reviews...</p>
+        } @else {
+          <div class="reviews">
+            @for (review of reviewsByTourId[reviewTour.id]; track review.id) {
+              <div class="review">
+                <div class="review-head">
+                  <strong>{{ review.touristUsername }}</strong>
+                  <span>{{ stars(review.rating) }}</span>
+                </div>
+                <p>{{ review.comment }}</p>
+                <small>
+                  Visited {{ review.visitedAt | date: 'mediumDate' }} -
+                  reviewed {{ review.createdAt | date: 'mediumDate' }}
+                </small>
+                @if (review.images.length) {
+                  <div class="review-images">
+                    @for (image of review.images; track image) {
+                      <button class="image-view-button" type="button" (click)="openImage(image)" aria-label="View review image">
+                        <img [src]="image" alt="Review image" />
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            } @empty {
+              <p class="muted">No reviews yet.</p>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  }
+
+  @if (selectedImage) {
+    <div class="image-lightbox" role="dialog" aria-modal="true" aria-label="Full-size tour image" (click)="closeImage()">
+      <button class="lightbox-close" type="button" (click)="closeImage()" aria-label="Close image">Close</button>
+      <img [src]="selectedImage" alt="Full-size tour image" (click)="$event.stopPropagation()" />
+    </div>
   }
 </section>

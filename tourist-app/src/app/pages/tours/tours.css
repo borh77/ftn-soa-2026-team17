@@ -1,6 +1,7 @@
 .tour-page {
   display: grid;
   gap: 26px;
+  min-width: 0;
 }
 
 .page-header,
@@ -20,6 +21,13 @@
 .keypoint-head {
   justify-content: space-between;
   gap: 16px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .hero-strip {
@@ -73,10 +81,15 @@ h3 {
   align-items: start;
 }
 
+.workspace.single-column {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .tour-form,
 .tour-card,
 .keypoint-editor,
-.review-form {
+.review-form,
+.tour-details-editor {
   border: 1px solid #d9e4df;
   border-radius: 8px;
   background: #ffffff;
@@ -98,15 +111,27 @@ h3 {
 .tour-list {
   display: grid;
   gap: 16px;
+  min-width: 0;
+}
+
+.tour-list > .section-title,
+.tour-page > .muted {
+  border: 1px solid #d9e4df;
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #264653;
+  box-shadow: 0 10px 24px rgba(38, 70, 83, 0.08);
 }
 
 .catalog {
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 label {
   display: grid;
   gap: 7px;
+  min-width: 0;
   color: #264653;
   font-weight: 700;
 }
@@ -115,6 +140,8 @@ input,
 select,
 textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid #c9d8d2;
   border-radius: 6px;
   padding: 10px 12px;
@@ -140,6 +167,25 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  min-width: 0;
+}
+
+.travel-time-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-help {
+  margin: -8px 0 0;
+  color: #6b7f78;
+  font-size: 13px;
+}
+
+.tour-details-editor {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  background: #f7fbf9;
+  box-shadow: none;
 }
 
 .keypoint-editor {
@@ -181,6 +227,10 @@ textarea {
   border: 1px solid transparent;
   font-weight: 800;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .small {
@@ -214,7 +264,16 @@ textarea {
 .tour-card {
   display: grid;
   gap: 16px;
+  min-width: 0;
+  overflow: hidden;
   border-left: 4px solid #e76f51;
+}
+
+.tour-card > *,
+.tour-card-head > div,
+.keypoints-preview > div,
+.review-form > * {
+  min-width: 0;
 }
 
 .tourist-card-head {
@@ -230,6 +289,7 @@ textarea {
   margin-bottom: 0;
   color: #465b55;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .status {
@@ -277,6 +337,42 @@ textarea {
   font-size: 13px;
 }
 
+.travel-times span {
+  background: #fff7ed;
+  color: #8b5a22;
+}
+
+.publish-readiness {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 1px solid #efd7c8;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fffaf5;
+  color: #8b5a22;
+}
+
+.publish-readiness.ready {
+  border-color: #b8dfcf;
+  background: #edf8f3;
+  color: #1f7a5f;
+}
+
+.publish-readiness span {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #ffffff;
+  color: #9c3d1f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.publish-readiness span.complete {
+  color: #1f7a5f;
+}
+
 .keypoints-preview {
   display: grid;
   gap: 10px;
@@ -284,6 +380,8 @@ textarea {
 }
 
 .keypoints-preview div {
+  display: grid;
+  gap: 8px;
   border: 1px solid #e3ece8;
   border-left: 4px solid #e76f51;
   border-radius: 8px;
@@ -360,6 +458,69 @@ textarea {
   border: 1px solid #d9e7e2;
 }
 
+.preview-point-image {
+  max-width: none;
+  margin-bottom: 10px;
+}
+
+.preview-point-image img {
+  aspect-ratio: 16 / 10;
+}
+
+.image-view-button {
+  width: 100%;
+  border: 1px solid #dce9e5;
+  border-radius: 8px;
+  padding: 0;
+  overflow: hidden;
+  background: #f3f7f5;
+  cursor: zoom-in;
+}
+
+.image-view-button img {
+  display: block;
+  width: 100%;
+  object-fit: contain;
+}
+
+.keypoint-image-button {
+  align-self: stretch;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 60px 24px 24px;
+  background: rgba(20, 36, 34, 0.88);
+  cursor: zoom-out;
+}
+
+.image-lightbox img {
+  max-width: min(1100px, 100%);
+  max-height: calc(100vh - 84px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+
+.lightbox-close {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 6px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #264653;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .keypoint-row p {
   margin: 4px 0;
 }
@@ -411,6 +572,27 @@ textarea {
   padding-top: 14px;
 }
 
+.review-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(20, 36, 34, 0.72);
+}
+
+.review-modal {
+  width: min(720px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow-y: auto;
+  border: 1px solid #d9e4df;
+  border-radius: 8px;
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .3);
+}
+
 .execution-panel {
   display: grid;
   gap: 12px;
@@ -442,6 +624,10 @@ textarea {
   border: 1px solid #dce9e5;
 }
 
+.review-images .image-view-button img {
+  aspect-ratio: 1;
+}
+
 .review-head {
   display: flex;
   justify-content: space-between;
@@ -466,9 +652,14 @@ textarea {
 .review-form {
   display: grid;
   gap: 13px;
+  min-width: 0;
   padding: 16px;
   background: linear-gradient(180deg, #fffaf5, #ffffff);
   border-color: #efd7c8;
+}
+
+.review-form .form-grid {
+  grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1.3fr);
 }
 
 .drop-zone {
@@ -498,6 +689,7 @@ textarea {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: end;
+  min-width: 0;
 }
 
 .image-preview-grid div {
@@ -556,6 +748,23 @@ textarea {
   color: #9c3d1f;
 }
 
+.muted-note {
+  background: #f7fbf9;
+  color: #5d756f;
+  border: 1px solid #d9e4df;
+}
+
+.publish-price {
+  display: grid;
+  grid-template-columns: auto minmax(92px, 130px);
+  gap: 8px;
+  align-items: center;
+}
+
+.publish-price input {
+  min-height: 40px;
+}
+
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -563,6 +772,10 @@ textarea {
 
   .tour-form {
     position: static;
+  }
+
+  .catalog {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -576,8 +789,13 @@ textarea {
   }
 
   .form-grid,
+  .travel-time-grid,
   .catalog,
   .keypoint-row {
+    grid-template-columns: 1fr;
+  }
+
+  .review-form .form-grid {
     grid-template-columns: 1fr;
   }
 

@@ -10,12 +10,15 @@ import { Tours } from './pages/tours/tours';
 import { Cart } from './pages/cart/cart';
 import { MyTokens } from './pages/my-tokens/my-tokens';
 import { Blogs } from './pages/blogs/blogs';
+import { TourEditor } from './pages/tour-editor/tour-editor';
 
 export const routes: Routes = [
   { path: '', component: Home },
   { path: 'login', component: Login },
   { path: 'register', component: Register },
   { path: 'profile', component: Profile },
+  { path: 'tours/new', component: TourEditor },
+  { path: 'tours/:id/edit', component: TourEditor },
   { path: 'tours', component: Tours },
   { path: 'blogs', component: Blogs },
   { path: 'cart', component: Cart },

@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { marked } from 'marked';
 import { finalize } from 'rxjs';
-import { BlogEntry, BlogService, CommentResponse, CreateBlogRequest } from '../../core/services/blog';
+import { BlogEntry, BlogService, CreateBlogRequest } from '../../core/services/blog';
 import { FollowerService } from '../../core/services/follower';
 import { AuthService } from '../../core/services/auth';
+import { UserDirectoryService } from '../../core/services/user-directory';
 
 @Component({
   selector: 'app-blogs',
@@ -16,15 +17,18 @@ import { AuthService } from '../../core/services/auth';
 export class Blogs implements OnInit {
   blogs: BlogEntry[] = [];
   recommendations: number[] = [];
+  usernamesById: Record<number, string> = {};
+  imageDropActive = false;
+  selectedImage: string | null = null;
 
   canCommentByAuthorId: Record<number, boolean> = {};
   commentTextByBlogId: Record<number, string> = {};
   followLoadingByAuthorId: Record<number, boolean> = {};
   commentLoadingByBlogId: Record<number, boolean> = {};
   likeLoadingByBlogId: Record<number, boolean> = {};
-  editCommentTextByCommentId: Record<number, string> = {};
-  editingCommentByCommentId: Record<number, boolean> = {};
-  commentActionLoadingByCommentId: Record<number, boolean> = {};
+  editingCommentId: number | null = null;
+  editCommentText = '';
+  commentActionLoadingById: Record<number, boolean> = {};
 
   isLoading = false;
   showCreateForm = false;
@@ -42,6 +46,7 @@ export class Blogs implements OnInit {
   constructor(
     private blogService: BlogService,
     private followerService: FollowerService,
+    private userDirectoryService: UserDirectoryService,
     public authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -49,12 +54,16 @@ export class Blogs implements OnInit {
   ngOnInit(): void {
     this.loadBlogs();
     this.loadRecommendations();
+    this.loadUsernames();
   }
 
-  loadBlogs(): void {
+  loadBlogs(clearNotices = true): void {
     this.isLoading = true;
-    this.message = '';
-    this.errorMessage = '';
+
+    if (clearNotices) {
+      this.message = '';
+      this.errorMessage = '';
+    }
 
     this.blogService.getBlogs(1, 50)
       .pipe(finalize(() => {
@@ -80,7 +89,7 @@ export class Blogs implements OnInit {
       title: this.newBlog.title.trim(),
       description: this.newBlog.description.trim(),
       creationDate: '',
-      images: this.splitLinesOrCommas(this.newBlog.imageUrlsText)
+      images: this.blogImageValues()
     };
 
     this.message = '';
@@ -111,7 +120,7 @@ export class Blogs implements OnInit {
           this.message = `Blog "${blog.title}" was created.`;
           this.resetCreateForm();
           this.showCreateForm = false;
-          this.loadBlogs();
+          this.loadBlogs(false);
         },
         error: () => {
           this.errorMessage = 'Blog could not be created.';
@@ -124,6 +133,19 @@ export class Blogs implements OnInit {
     this.followerService.getRecommendations().subscribe({
       next: recommendations => {
         this.recommendations = recommendations;
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  loadUsernames(): void {
+    this.userDirectoryService.getUsers().subscribe({
+      next: users => {
+        this.usernamesById = users.reduce<Record<number, string>>((lookup, user) => {
+          lookup[Number(user.id)] = user.username;
+          return lookup;
+        }, {});
         this.cdr.detectChanges();
       },
       error: () => {}
@@ -170,9 +192,9 @@ export class Blogs implements OnInit {
       .subscribe({
         next: () => {
           this.canCommentByAuthorId[authorId] = true;
-          this.message = `You are now following user ${authorId}.`;
+          this.message = `You are now following @${this.usernameFor(authorId)}.`;
           this.loadRecommendations();
-          this.cdr.detectChanges();
+          this.loadBlogs(false);
         },
         error: error => {
           const backendMessage = error?.error?.error || error?.error?.message;
@@ -201,11 +223,10 @@ export class Blogs implements OnInit {
         this.cdr.detectChanges();
       }))
       .subscribe({
-        next: comment => {
-          blog.comments = [comment, ...(blog.comments ?? [])];
+        next: () => {
           this.commentTextByBlogId[blog.id] = '';
           this.message = 'Comment added.';
-          this.cdr.detectChanges();
+          this.loadBlogs(false);
         },
         error: () => {
           this.errorMessage = 'Comment could not be added.';
@@ -214,77 +235,70 @@ export class Blogs implements OnInit {
       });
   }
 
-  startEditComment(comment: CommentResponse): void {
-    this.errorMessage = '';
+  startCommentEdit(comment: { id: number; text: string }): void {
+    this.editingCommentId = comment.id;
+    this.editCommentText = comment.text;
     this.message = '';
-    this.editingCommentByCommentId[comment.id] = true;
-    this.editCommentTextByCommentId[comment.id] = comment.text;
+    this.errorMessage = '';
   }
 
-  cancelEditComment(commentId: number): void {
-    delete this.editingCommentByCommentId[commentId];
-    delete this.editCommentTextByCommentId[commentId];
+  cancelCommentEdit(): void {
+    this.editingCommentId = null;
+    this.editCommentText = '';
   }
 
-  updateComment(blog: BlogEntry, comment: CommentResponse): void {
-    const text = (this.editCommentTextByCommentId[comment.id] ?? '').trim();
+  updateComment(blog: BlogEntry, commentId: number): void {
+    const text = this.editCommentText.trim();
 
     if (!text) {
       this.errorMessage = 'Comment text is required.';
       return;
     }
 
+    this.commentActionLoadingById[commentId] = true;
     this.message = '';
     this.errorMessage = '';
-    this.commentActionLoadingByCommentId[comment.id] = true;
-    this.cdr.detectChanges();
 
-    this.blogService.updateComment(blog.id, comment.id, { text })
+    this.blogService.updateComment(blog.id, commentId, { text })
       .pipe(finalize(() => {
-        this.commentActionLoadingByCommentId[comment.id] = false;
+        this.commentActionLoadingById[commentId] = false;
         this.cdr.detectChanges();
       }))
       .subscribe({
-        next: updatedComment => {
-          blog.comments = (blog.comments ?? []).map(existing =>
-            existing.id === updatedComment.id ? updatedComment : existing
-          );
-          this.cancelEditComment(comment.id);
+        next: () => {
+          this.cancelCommentEdit();
           this.message = 'Comment updated.';
-          this.cdr.detectChanges();
+          this.loadBlogs(false);
         },
         error: error => {
-          const backendMessage = error?.error?.error || error?.error?.message;
+          const backendMessage = error?.error?.detail || error?.error?.message;
           this.errorMessage = backendMessage || 'Comment could not be updated.';
           this.cdr.detectChanges();
         }
       });
   }
 
-  deleteComment(blog: BlogEntry, comment: CommentResponse): void {
-    if (!confirm('Delete this comment?')) {
-      return;
-    }
-
+  deleteComment(blog: BlogEntry, commentId: number): void {
+    this.commentActionLoadingById[commentId] = true;
     this.message = '';
     this.errorMessage = '';
-    this.commentActionLoadingByCommentId[comment.id] = true;
-    this.cdr.detectChanges();
 
-    this.blogService.deleteComment(blog.id, comment.id)
+    this.blogService.deleteComment(blog.id, commentId)
       .pipe(finalize(() => {
-        this.commentActionLoadingByCommentId[comment.id] = false;
+        this.commentActionLoadingById[commentId] = false;
         this.cdr.detectChanges();
       }))
       .subscribe({
         next: () => {
-          blog.comments = (blog.comments ?? []).filter(existing => existing.id !== comment.id);
-          this.cancelEditComment(comment.id);
+          if (this.editingCommentId === commentId) {
+            this.cancelCommentEdit();
+          }
+
           this.message = 'Comment deleted.';
-          this.cdr.detectChanges();
+          this.loadBlogs(false);
         },
         error: error => {
-          const backendMessage = error?.error?.error || error?.error?.message;
+          const backendMessage = error?.error?.detail || error?.error?.message;
           this.errorMessage = backendMessage || 'Comment could not be deleted.';
           this.cdr.detectChanges();
         }
@@ -308,10 +322,8 @@ export class Blogs implements OnInit {
       }))
       .subscribe({
         next: () => {
-          blog.isLikedByCurrentUser = !blog.isLikedByCurrentUser;
-          blog.likeCount += blog.isLikedByCurrentUser ? 1 : -1;
-          this.message = blog.isLikedByCurrentUser ? 'Blog liked.' : 'Like removed.';
-          this.cdr.detectChanges();
+          this.message = blog.isLikedByCurrentUser ? 'Like removed.' : 'Blog liked.';
+          this.loadBlogs(false);
         },
         error: error => {
           const backendMessage = error?.error?.error || error?.error?.message;
@@ -333,12 +345,115 @@ export class Blogs implements OnInit {
     return this.authService.getPersonId() === authorId;
   }
 
-  isMyComment(comment: CommentResponse): boolean {
-    return this.authService.getPersonId() === comment.authorId;
+  isMyComment(authorId: number): boolean {
+    return this.authService.getPersonId() === authorId;
+  }
+
+  usernameFor(userId: number): string {
+    if (this.authService.getPersonId() === userId) {
+      return this.authService.getUsername() ?? this.usernamesById[userId] ?? `user-${userId}`;
+    }
+
+    return this.usernamesById[userId] ?? `user-${userId}`;
   }
 
   blogImageAlt(index: number, blogTitle: string): string {
     return `Image ${index + 1} for ${blogTitle}`;
+  }
+
+  openImage(image: string): void {
+    this.selectedImage = image;
+  }
+
+  closeImage(): void {
+    this.selectedImage = null;
+  }
+
+  @HostListener('document:keydown.escape')
+  closeImageOnEscape(): void {
+    this.closeImage();
+  }
+
+  onBlogImageDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.imageDropActive = true;
+  }
+
+  onBlogImageDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.imageDropActive = false;
+  }
+
+  onBlogImageDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.imageDropActive = false;
+    this.errorMessage = '';
+
+    const files = Array.from(event.dataTransfer?.files ?? [])
+      .filter(item => item.type.startsWith('image/'));
+    const droppedText = event.dataTransfer?.getData('text/plain') ?? '';
+
+    if (files.length === 0 && droppedText.trim()) {
+      this.addBlogImages(this.parseBlogImages(droppedText));
+      return;
+    }
+
+    if (files.length === 0) {
+      this.errorMessage = 'Drop an image file or paste an image URL.';
+      return;
+    }
+
+    files.forEach(file => {
+      this.resizeImage(file)
+        .then(image => {
+          this.addBlogImages([image]);
+          this.cdr.detectChanges();
+        })
+        .catch(() => {
+          this.errorMessage = 'Could not process this image. Try another one or paste an image URL.';
+          this.cdr.detectChanges();
+        });
+    });
+  }
+
+  onBlogImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? [])
+      .filter(item => item.type.startsWith('image/'));
+
+    this.errorMessage = '';
+
+    if (files.length === 0) {
+      return;
+    }
+
+    files.forEach(file => {
+      this.resizeImage(file)
+        .then(image => {
+          this.addBlogImages([image]);
+          this.cdr.detectChanges();
+        })
+        .catch(() => {
+          this.errorMessage = 'Could not process this image. Try another one or paste an image URL.';
+          this.cdr.detectChanges();
+        });
+    });
+
+    input.value = '';
+  }
+
+  removeBlogImage(index: number): void {
+    const images = this.blogImageValues();
+    images.splice(index, 1);
+    this.newBlog.imageUrlsText = images.join('\n');
+  }
+
+  clearBlogImages(): void {
+    this.newBlog.imageUrlsText = '';
+  }
+
+  blogImageValues(): string[] {
+    return this.parseBlogImages(this.newBlog.imageUrlsText);
   }
 
   private resetCreateForm(): void {
@@ -355,5 +470,60 @@ export class Blogs implements OnInit {
       .split(/[\n,]/)
       .map(item => item.trim())
       .filter(Boolean);
+  }
+
+  private addBlogImages(images: string[]): void {
+    const nextImages = [...this.blogImageValues(), ...images.map(image => image.trim()).filter(Boolean)];
+    this.newBlog.imageUrlsText = nextImages.join('\n');
+  }
+
+  private parseBlogImages(value: string): string[] {
+    return value
+      .split('\n')
+      .flatMap(line => {
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+          return [];
+        }
+
+        return trimmed.startsWith('data:image/')
+          ? [trimmed]
+          : trimmed.split(',').map(item => item.trim()).filter(Boolean);
+      });
+  }
+
+  private resizeImage(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onerror = () => reject();
+      reader.onload = () => {
+        const image = new Image();
+
+        image.onerror = () => reject();
+        image.onload = () => {
+          const maxSide = 720;
+          const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+
+          const context = canvas.getContext('2d');
+
+          if (!context) {
+            reject();
+            return;
+          }
+
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.76));
+        };
+
+        image.src = String(reader.result);
+      };
+
+      reader.readAsDataURL(file);
+    });
   }
 }
